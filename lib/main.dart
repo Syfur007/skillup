@@ -11,8 +11,6 @@ import 'app.dart';
 /// before running the app. For now, service initialization is a placeholder
 /// so the app can start quickly during frontend-first development.
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-
   // Set up a top-level Flutter error handler so we can capture unexpected
   // exceptions during development. Replace with production reporting
   // (Sentry, Firebase Crashlytics) later.
@@ -24,6 +22,7 @@ Future<void> main() async {
   // Use runZonedGuarded to catch errors from async code that wouldn't
   // be caught by FlutterError.onError.
   runZonedGuarded(() async {
+    WidgetsFlutterBinding.ensureInitialized();
     // TODO: Initialize services here (e.g., await Firebase.initializeApp()).
 
     runApp(const App());
