@@ -1,4 +1,4 @@
-package com.example.skillup
+package com.skillup.app
 
 import io.flutter.embedding.android.FlutterActivity
 
