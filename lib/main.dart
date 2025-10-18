@@ -3,6 +3,9 @@
 
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import 'firebase_options.dart';
 import 'app.dart';
 
 /// Entrypoint for the SkillUp application.
@@ -16,20 +19,25 @@ Future<void> main() async {
   // (Sentry, Firebase Crashlytics) later.
   FlutterError.onError = (FlutterErrorDetails details) {
     FlutterError.presentError(details);
-    // TODO: report to error tracking service.
   };
 
   // Use runZonedGuarded to catch errors from async code that wouldn't
   // be caught by FlutterError.onError.
   runZonedGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
-    // TODO: Initialize services here (e.g., await Firebase.initializeApp()).
-
+    
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    
+    FlutterError.onError =  (FlutterErrorDetails details) {
+      FlutterError.presentError(details);
+      FirebaseCrashlytics.instance.recordFlutterError(details);
+    };
+    
     runApp(const App());
   }, (error, stack) {
     // Handle uncaught errors.
-    // TODO: report to error tracking service.
-    // ignore: avoid_print
-    print('Uncaught error: $error');
+    FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
   });
 }
