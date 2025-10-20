@@ -13,6 +13,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  bool _isObscure = true;
 
   @override
   void initState() {
@@ -72,14 +73,22 @@ class _LoginScreenState extends State<LoginScreen> {
                       validator: (value) {
                         return AuthProvider().validatePassword(value);
                       },
-
-                      obscureText: true,
-                      decoration: const InputDecoration(
+                      obscureText: _isObscure,
+                      decoration: InputDecoration(
                         prefixIcon: Icon(Icons.password),
                         labelText: "Password",
                         hintText: "Enter your Password",
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.all(Radius.circular(5)),
+                        ),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _isObscure
+                                ? Icons.visibility
+                                : Icons.visibility_off,
+                          ),
+                          onPressed: () =>
+                              setState(() => _isObscure = !_isObscure),
                         ),
                       ),
                     ),
@@ -96,9 +105,18 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: Text("Login"),
                   ),
                   TextButton(onPressed: () {}, child: Text("Forgot Password?")),
-                  TextButton(
-                    onPressed: () {},
-                    child: Text("Don't have an account? Sign up"),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text("Don't have an account? "),
+                      TextButton(
+                        onPressed: () {},
+                        child: Text(
+                          "Sign up",
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
