@@ -2,6 +2,7 @@
 // Registration screen UI for creating a new account. Uses form validators and
 // AuthProvider to register users.
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:skillup/core/navigation/navigation.dart';
 
@@ -30,7 +31,9 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   void _handleRegistration() {
     if (_formKey.currentState!.validate()) {
       // TODO: Implement registration logic
-      print('Registration form is valid');
+      if (kDebugMode) {
+        print('Registration form is valid');
+      }
     }
   }
 
