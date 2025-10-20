@@ -3,11 +3,11 @@
 
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'firebase_options.dart';
 import 'app.dart';
-import 'features/auth/screens/login_screen.dart';
 
 
 /// Entrypoint for the SkillUp application.
@@ -37,7 +37,11 @@ Future<void> main() async {
       FirebaseCrashlytics.instance.recordFlutterError(details);
     };
     
-    runApp(MaterialApp(home: LoginScreen()));
+    runApp(
+      const ProviderScope(
+        child: App(),
+      ),
+    );
   }, (error, stack) {
     // Handle uncaught errors.
     FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);

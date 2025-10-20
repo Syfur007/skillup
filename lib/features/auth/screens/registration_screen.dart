@@ -3,6 +3,7 @@
 // AuthProvider to register users.
 
 import 'package:flutter/material.dart';
+import 'package:skillup/core/navigation/navigation.dart';
 
 class RegistrationScreen extends StatefulWidget {
   const RegistrationScreen({super.key});
@@ -117,6 +118,19 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
                 child: const Text('Register', style: TextStyle(fontSize: 16)),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text('Already have an account?'),
+                  TextButton(
+                    onPressed: () {
+                      context.goToNamed(RouteNames.login);
+                    },
+                    child: const Text('Login'),
+                  ),
+                ],
               ),
             ],
           ),
