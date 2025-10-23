@@ -7,7 +7,9 @@ class RouteNames {
   // Auth routes
   static const login = 'login';
   static const register = 'register';
-  
+  static const profileSetup = 'profile-setup';
+  static const resetPassword = 'reset-password';
+
   // Dashboard routes
   static const dashboard = 'dashboard';
   
@@ -28,6 +30,8 @@ class RoutePaths {
   // Auth paths
   static const login = '/login';
   static const register = '/register';
+  static const profileSetup = '/profile-setup';
+  static const resetPassword = '/reset-password';
   
   // Dashboard paths
   static const dashboard = '/';
