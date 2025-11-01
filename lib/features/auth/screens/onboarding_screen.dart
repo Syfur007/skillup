@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:skillup/core/navigation/navigation.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 
 class OnboardingScreen extends StatefulWidget {
@@ -49,7 +50,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('onboardingComplete', true);
     if (mounted) {
-      Navigator.pushReplacementNamed(context, '/home');
+      context.goToNamed(RouteNames.login);
     }
   }
 

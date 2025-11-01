@@ -17,7 +17,7 @@ final routerProvider = Provider<GoRouter>((ref) {
   // final authState = ref.watch(authStateProvider);
 
   return GoRouter(
-    initialLocation: RoutePaths.login,
+    initialLocation: RoutePaths.onboarding,
     debugLogDiagnostics: true,
 
     // Error handling for unknown routes

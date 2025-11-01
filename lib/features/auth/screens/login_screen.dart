@@ -36,6 +36,7 @@ class _LoginScreenState extends State<LoginScreen> {
         print('Email: ${_emailController.text}');
         print('Password: ${_passwordController.text}');
       }
+      context.goToNamed(RouteNames.dashboard);
     }
   }
 
@@ -105,8 +106,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     onPressed: () {
                       if (_formKey.currentState!.validate()) {
                         _handleLogin();
-                        // Navigate to dashboard after successful login
-                        context.goToNamed(RouteNames.onboarding);
                       }
                     },
                     child: Text("Login"),

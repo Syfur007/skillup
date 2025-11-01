@@ -8,6 +8,7 @@ import 'package:skillup/core/navigation/route_names.dart';
 import 'package:skillup/features/auth/screens/login_screen.dart';
 import 'package:skillup/features/auth/screens/onboarding_screen.dart';
 import 'package:skillup/features/auth/screens/registration_screen.dart';
+import 'package:skillup/features/dashboard/screens/dashboard_screen.dart';
 
 /// Authentication feature routes
 class AuthRoutes {
@@ -29,6 +30,12 @@ class AuthRoutes {
       name: RouteNames.onboarding,
       pageBuilder: (context, state) =>
           MaterialPage(key: state.pageKey, child: const OnboardingScreen()),
+    ),
+    GoRoute(
+      path: RoutePaths.dashboard,
+      name: RouteNames.dashboard,
+      pageBuilder: (context, state) =>
+          MaterialPage(key: state.pageKey, child: const DashboardScreen()),
     ),
   ];
 }
