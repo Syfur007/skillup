@@ -1,5 +1,5 @@
 // auth_routes.dart
-// Route definitions for auth features.
+// Centralized route definitions for auth feature.
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -8,7 +8,6 @@ import 'package:skillup/core/navigation/route_names.dart';
 import 'package:skillup/features/auth/screens/login_screen.dart';
 import 'package:skillup/features/auth/screens/onboarding_screen.dart';
 import 'package:skillup/features/auth/screens/registration_screen.dart';
-import 'package:skillup/features/auth/screens/profile_setup_screen.dart';
 
 /// Authentication feature routes
 class AuthRoutes {
@@ -30,14 +29,12 @@ class AuthRoutes {
       name: RouteNames.onboarding,
       pageBuilder: (context, state) =>
           MaterialPage(key: state.pageKey, child: const OnboardingScreen()),
-        ),
-        GoRoute(
-          path: RoutePaths.profileSetup,
-          name: RouteNames.profileSetup,
-          pageBuilder: (context, state) => MaterialPage(
-            key: state.pageKey,
-            child: const ProfileSetupScreen(),
-          ),
-        ),
-      ];
+    ),
+    GoRoute(
+      path: RoutePaths.dashboard,
+      name: RouteNames.dashboard,
+      pageBuilder: (context, state) =>
+          MaterialPage(key: state.pageKey, child: const DashboardScreen()),
+    ),
+  ];
 }
