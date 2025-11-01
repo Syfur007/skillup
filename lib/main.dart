@@ -3,7 +3,12 @@
 
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import 'firebase_options.dart';
 import 'app.dart';
+
 
 /// Entrypoint for the SkillUp application.
 ///
@@ -11,26 +16,34 @@ import 'app.dart';
 /// before running the app. For now, service initialization is a placeholder
 /// so the app can start quickly during frontend-first development.
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-
   // Set up a top-level Flutter error handler so we can capture unexpected
   // exceptions during development. Replace with production reporting
   // (Sentry, Firebase Crashlytics) later.
   FlutterError.onError = (FlutterErrorDetails details) {
     FlutterError.presentError(details);
-    // TODO: report to error tracking service.
   };
 
   // Use runZonedGuarded to catch errors from async code that wouldn't
   // be caught by FlutterError.onError.
   runZonedGuarded(() async {
-    // TODO: Initialize services here (e.g., await Firebase.initializeApp()).
-
-    runApp(const App());
+    WidgetsFlutterBinding.ensureInitialized();
+    
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    
+    FlutterError.onError =  (FlutterErrorDetails details) {
+      FlutterError.presentError(details);
+      FirebaseCrashlytics.instance.recordFlutterError(details);
+    };
+    
+    runApp(
+      const ProviderScope(
+        child: App(),
+      ),
+    );
   }, (error, stack) {
     // Handle uncaught errors.
-    // TODO: report to error tracking service.
-    // ignore: avoid_print
-    print('Uncaught error: $error');
+    FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
   });
 }
