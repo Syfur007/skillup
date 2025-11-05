@@ -5,6 +5,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:skillup/core/navigation/navigation.dart';
+import 'package:skillup/features/auth/providers/auth_provider.dart';
 
 class RegistrationScreen extends StatefulWidget {
   const RegistrationScreen({super.key});
@@ -19,6 +20,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   bool _isObscure = true;
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -28,12 +30,37 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     super.dispose();
   }
 
-  void _handleRegistration() {
-    if (_formKey.currentState!.validate()) {
-      // TODO: Implement registration logic
+  void _handleRegistration() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      await AuthProvider().register(
+        _emailController.text.trim(),
+        _passwordController.text,
+      );
+
       if (kDebugMode) {
-        print('Registration form is valid');
+        print('Registration successful for ${_emailController.text}');
       }
+
+      // Navigate to profile setup after registration
+      if (mounted) {
+        context.goToNamed(RouteNames.profileSetup);
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('Registration error: $e');
+      }
+      final message = e is Exception ? e.toString().replaceFirst('Exception: ', '') : 'Registration failed';
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message)),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -116,11 +143,17 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
               ),
               const SizedBox(height: 24),
               ElevatedButton(
-                onPressed: _handleRegistration,
+                onPressed: _isLoading ? null : _handleRegistration,
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
-                child: const Text('Register', style: TextStyle(fontSize: 16)),
+                child: _isLoading
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('Register', style: TextStyle(fontSize: 16)),
               ),
               const SizedBox(height: 16),
               Row(

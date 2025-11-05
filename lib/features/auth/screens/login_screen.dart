@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:skillup/features/auth/providers/auth_provider.dart';
 import 'package:skillup/core/navigation/navigation.dart';
 
+
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -15,11 +16,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isObscure = true;
-
-  @override
-  void initState() {
-    super.initState();
-  }
 
   @override
   void dispose() {
@@ -36,6 +32,7 @@ class _LoginScreenState extends State<LoginScreen> {
         print('Email: ${_emailController.text}');
         print('Password: ${_passwordController.text}');
       }
+      context.goToNamed(RouteNames.dashboard);
     }
   }
 
@@ -105,8 +102,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     onPressed: () {
                       if (_formKey.currentState!.validate()) {
                         _handleLogin();
-                        // Navigate to dashboard after successful login
-                        context.goToNamed(RouteNames.onboarding);
                       }
                     },
                     child: Text("Login"),

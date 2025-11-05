@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:skillup/core/navigation/navigation.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 
-class OnboardingScreen extends StatefulWidget {
+class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({Key? key}) : super(key: key);
 
   @override
-  State<OnboardingScreen> createState() => _OnboardingScreenState();
+  ConsumerState<OnboardingScreen> createState() => _OnboardingScreenState();
 }
 
-class _OnboardingScreenState extends State<OnboardingScreen> {
+class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final PageController _pageController = PageController();
   bool isLastPage = false;
 
@@ -47,9 +49,23 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   void _completeOnboarding() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('onboardingComplete', true);
-    if (mounted) {
-      Navigator.pushReplacementNamed(context, '/home');
+    // Use the same key the router's onboarding provider checks
+    await prefs.setBool('onboardingCompleted', true);
+
+    // Invalidate/refetch the onboarding provider so GoRouter's redirect sees the new value
+    // `ref` is provided by ConsumerState
+    ref.invalidate(onboardingCompletedProvider);
+
+    // Wait for the provider to resolve so the router's redirect will observe the updated value.
+    // This avoids racing with GoRouter's redirect that would otherwise send us back to onboarding.
+    try {
+      final isCompleted = await ref.read(onboardingCompletedProvider.future);
+      if (isCompleted && mounted) {
+        context.goToNamed(RouteNames.login);
+      }
+    } catch (_) {
+      // If anything goes wrong, still try navigating to login as a fallback.
+      if (mounted) context.goToNamed(RouteNames.login);
     }
   }
 
