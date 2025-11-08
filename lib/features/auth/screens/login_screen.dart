@@ -36,7 +36,7 @@ class _LoginScreenState extends State<LoginScreen> {
         print('Email: ${_emailController.text}');
         print('Password: ${_passwordController.text}');
       }
-      context.goToNamed(RouteNames.dashboard);
+      context.goToNamed(RouteNames.home);
     }
   }
 
