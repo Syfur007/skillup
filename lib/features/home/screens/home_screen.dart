@@ -75,7 +75,7 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 class _GroupsPlaceholder extends StatelessWidget {
-  const _GroupsPlaceholder({super.key});
+  const _GroupsPlaceholder();
 
   @override
   Widget build(BuildContext context) {
