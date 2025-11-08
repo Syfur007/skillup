@@ -10,6 +10,7 @@ import 'package:skillup/features/auth/screens/onboarding_screen.dart';
 import 'package:skillup/features/auth/screens/registration_screen.dart';
 import 'package:skillup/features/dashboard/screens/dashboard_screen.dart';
 import 'package:skillup/features/explore/screens/roadmap_list_screen.dart';
+import 'package:skillup/features/home/screens/home_screen.dart';
 import 'package:skillup/features/profile/screens/profile_screen.dart';
 
 /// Authentication feature routes
@@ -52,10 +53,10 @@ class AuthRoutes {
           MaterialPage(key: state.pageKey, child: const RoadmapListScreen()),
     ),
     GoRoute(
-      path: RoutePaths.roadmapDetail,
-      name: RouteNames.roadmapDetail,
+      path: RoutePaths.home,
+      name: RouteNames.home,
       pageBuilder: (context, state) =>
-          MaterialPage(key: state.pageKey, child: const RoadmapListScreen()),
+          MaterialPage(key: state.pageKey, child: const HomeScreen()),
     ),
   ];
 }

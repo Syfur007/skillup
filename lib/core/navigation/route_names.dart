@@ -24,6 +24,9 @@ class RouteNames {
 
   // Profile routes
   static const profile = 'profile';
+
+  // Home routes
+  static const home = 'home';
 }
 
 /// Route paths - kept separate from names for flexibility
@@ -48,6 +51,9 @@ class RoutePaths {
 
   // Profile paths
   static const profile = '/profile';
+
+  //home paths
+  static const home = '/home';
 
   // Helper methods for dynamic paths
   static String roadmapDetailPath(String id) => '/explore/roadmaps/$id';
