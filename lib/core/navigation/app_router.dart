@@ -47,7 +47,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           }
           // If onboarding is completed and the user is at the root/onboarding path, redirect to the dashboard.
           if (isCompleted && matchedLocation == RoutePaths.onboarding) {
-            return RoutePaths.dashboard; // Assumes a '/dashboard' route exists
+            return RoutePaths.login; // Assumes a '/dashboard' route exists
           }
 
           // TODO: Add auth-based redirects here when ready
