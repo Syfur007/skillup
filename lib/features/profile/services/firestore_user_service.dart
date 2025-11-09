@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb;
-import '../models/user.dart';
-import '../models/user_roadmap.dart';
+import '../../../domain/models/user.dart';
+import '../../../domain/models/user_roadmap.dart';
 
 class FirestoreUserService {
   final FirebaseFirestore _firestore;
@@ -27,11 +27,20 @@ class FirestoreUserService {
     return true;
   }
 
-  Future<void> saveUser(User user) async {
+  Future<void> saveUser(User user, {bool isNewUser = false}) async {
     final uid = _auth.currentUser?.uid;
     if (uid == null) throw Exception('Not signed in');
     final doc = _firestore.collection('users').doc(uid);
-    final data = user.toJson();
+
+    // Update the user object with current timestamp and uid
+    final updatedUser = user.copyWith(
+      id: uid,
+      email: _auth.currentUser?.email ?? user.email,
+      updatedAt: DateTime.now(),
+      createdAt: isNewUser ? DateTime.now() : user.createdAt,
+    );
+
+    final data = updatedUser.toJson();
     await doc.set(data, SetOptions(merge: true));
   }
 

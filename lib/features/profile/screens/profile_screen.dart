@@ -4,10 +4,10 @@
 import 'package:flutter/material.dart';
 import '../../explore/models/roadmap.dart';
 import '../../explore/services/mock_roadmap_service.dart';
-import '../models/user.dart';
-import '../models/user_roadmap.dart';
+import '../../../domain/models/user.dart';
+import '../../../domain/models/user_roadmap.dart';
 import '../services/firestore_user_service.dart';
-import 'package:skillup/screens/onboarding/profile_setup_screen.dart';
+import 'package:skillup/features/profile/screens/profile_setup_screen.dart';
 import 'package:skillup/core/navigation/navigation_extensions.dart';
 import 'package:skillup/core/navigation/route_names.dart';
 import 'package:skillup/features/auth/providers/auth_provider.dart' as app_auth;
@@ -15,7 +15,7 @@ import 'package:firebase_auth/firebase_auth.dart' as fb;
 import 'dart:async';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({Key? key}) : super(key: key);
+  const ProfileScreen({super.key});
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -188,8 +188,8 @@ class _ProfileScreenState extends State<ProfileScreen>
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            Theme.of(context).primaryColor.withOpacity(0.9),
-            Theme.of(context).primaryColor.withOpacity(0.12),
+            Theme.of(context).primaryColor.withValues(alpha: 0.9),
+            Theme.of(context).primaryColor.withValues(alpha: 0.12),
           ],
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
@@ -200,7 +200,7 @@ class _ProfileScreenState extends State<ProfileScreen>
           _avatar(_user?.avatarKey ?? 'default', 100),
           const SizedBox(height: 12),
           Text(
-            _user?.username ?? 'New user',
+            _user?.displayName ?? _user?.username ?? 'New user',
             style: Theme.of(
               context,
             ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
@@ -246,18 +246,160 @@ class _ProfileScreenState extends State<ProfileScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if ((_user?.interests ?? []).isNotEmpty) ...[
-            Text('Interests', style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: _user!.interests!
-                  .map((i) => Chip(label: Text(i)))
-                  .toList(),
+          // Account Information Card
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.person, size: 20, color: Theme.of(context).primaryColor),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Account Information',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                    ],
+                  ),
+                  const Divider(),
+                  _buildInfoRow('Username', _user?.username ?? 'N/A'),
+                  if (_user?.displayName != null)
+                    _buildInfoRow('Display Name', _user!.displayName!),
+                  if (_user?.privacySettings.emailVisible ?? false)
+                    _buildInfoRow('Email', _user?.email ?? 'N/A', icon: Icons.email),
+                  _buildInfoRow(
+                    'Member Since',
+                    _formatDate(_user?.createdAt),
+                    icon: Icons.calendar_today,
+                  ),
+                  _buildInfoRow(
+                    'Total Points',
+                    '${_user?.totalPoints ?? 0}',
+                    icon: Icons.stars,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Bio Section
+          if (_user?.bio != null && (_user?.privacySettings.bioVisible ?? true)) ...[
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.info_outline, size: 20, color: Theme.of(context).primaryColor),
+                        const SizedBox(width: 8),
+                        Text(
+                          'About',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(_user!.bio!),
+                  ],
+                ),
+              ),
             ),
             const SizedBox(height: 16),
           ],
+
+          // Interests Section
+          if (_user != null && _user!.interests.isNotEmpty && (_user?.privacySettings.interestsVisible ?? true)) ...[
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.interests, size: 20, color: Theme.of(context).primaryColor),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Interests',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: _user!.interests
+                          .map((i) => Chip(
+                                label: Text(i),
+                                avatar: Icon(Icons.label, size: 16),
+                              ))
+                          .toList(),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+
+          // Privacy Settings Info
+          Card(
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.privacy_tip, size: 20, color: Theme.of(context).primaryColor),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Privacy Settings',
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Manage your privacy settings in Edit Profile',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _buildPrivacyChip(
+                        'Email',
+                        _user?.privacySettings.emailVisible ?? false,
+                      ),
+                      _buildPrivacyChip(
+                        'Interests',
+                        _user?.privacySettings.interestsVisible ?? true,
+                      ),
+                      _buildPrivacyChip(
+                        'Bio',
+                        _user?.privacySettings.bioVisible ?? true,
+                      ),
+                      _buildPrivacyChip(
+                        'Progress',
+                        _user?.privacySettings.progressVisible ?? true,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
           FilledButton.icon(
             onPressed: () async {
               final route = MaterialPageRoute(
@@ -268,10 +410,64 @@ class _ProfileScreenState extends State<ProfileScreen>
             },
             icon: const Icon(Icons.edit),
             label: const Text('Edit Profile'),
+            style: FilledButton.styleFrom(
+              minimumSize: const Size.fromHeight(48),
+            ),
           ),
         ],
       ),
     );
+  }
+
+  Widget _buildInfoRow(String label, String value, {IconData? icon}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: 16, color: Colors.grey),
+            const SizedBox(width: 8),
+          ],
+          Expanded(
+            flex: 2,
+            child: Text(
+              label,
+              style: const TextStyle(fontWeight: FontWeight.w500),
+            ),
+          ),
+          Expanded(
+            flex: 3,
+            child: Text(
+              value,
+              style: TextStyle(color: Colors.grey[700]),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPrivacyChip(String label, bool isVisible) {
+    return Chip(
+      label: Text(label),
+      avatar: Icon(
+        isVisible ? Icons.visibility : Icons.visibility_off,
+        size: 16,
+      ),
+      backgroundColor: isVisible
+          ? Colors.green.withAlpha(25)
+          : Colors.grey.withAlpha(25),
+    );
+  }
+
+  String _formatDate(DateTime? date) {
+    if (date == null) return 'N/A';
+    final months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+    return '${months[date.month - 1]} ${date.day}, ${date.year}';
   }
 
   Widget _buildRoadmapsTab() {
@@ -321,7 +517,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: assigned.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 8),
+                separatorBuilder: (_, _) => const SizedBox(height: 8),
                 itemBuilder: (context, idx) {
                   final r = assigned[idx];
                   final ur = _userRoadmaps.firstWhere(
@@ -372,7 +568,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: available.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 8),
+                separatorBuilder: (_, _) => const SizedBox(height: 8),
                 itemBuilder: (context, idx) {
                   final r = available[idx];
                   return Card(
@@ -405,8 +601,9 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   @override
   Widget build(BuildContext context) {
-    if (_loading)
+    if (_loading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
 
     return Scaffold(
       body: NestedScrollView(
