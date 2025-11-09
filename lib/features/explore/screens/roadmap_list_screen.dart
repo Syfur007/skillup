@@ -99,11 +99,8 @@ class _RoadmapListScreenState extends State<RoadmapListScreen> {
           return RoadmapCard(
             roadmap: roadmap,
             onTap: () {
-              Navigator.pushNamed(
-                context,
-                RouteNames.roadmapDetail,
-                arguments: roadmap, // Pass the entire roadmap object
-              );
+              // Use GoRouter helper to push the roadmap detail path and pass the roadmap object as extra
+              context.pushPath(RoutePaths.roadmapDetailPath(roadmap.id), extra: roadmap);
             },
           );
         },

@@ -7,7 +7,7 @@ import '../services/mock_user_service.dart';
 import 'package:skillup/screens/onboarding/profile_setup_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({Key? key}) : super(key: key);
+  const ProfileScreen({super.key});
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();

@@ -2,7 +2,6 @@
 // Registration screen UI for creating a new account. Uses form validators and
 // AuthProvider to register users.
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:skillup/core/navigation/navigation.dart';
 import 'package:skillup/features/auth/providers/auth_provider.dart';
@@ -32,7 +31,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
 
   void _handleRegistration() async {
     if (!_formKey.currentState!.validate()) return;
-
     setState(() => _isLoading = true);
 
     try {
@@ -40,24 +38,12 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         _emailController.text.trim(),
         _passwordController.text,
       );
-
-      if (kDebugMode) {
-        print('Registration successful for ${_emailController.text}');
-      }
-
       // Navigate to profile setup after registration
-      if (mounted) {
-        context.goToNamed(RouteNames.profileSetup);
-      }
+      if (mounted) context.goToNamed(RouteNames.profileSetup);
     } catch (e) {
-      if (kDebugMode) {
-        print('Registration error: $e');
-      }
       final message = e is Exception ? e.toString().replaceFirst('Exception: ', '') : 'Registration failed';
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(message)),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);

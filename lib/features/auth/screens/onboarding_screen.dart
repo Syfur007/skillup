@@ -5,7 +5,7 @@ import 'package:skillup/core/navigation/navigation.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
-  const OnboardingScreen({Key? key}) : super(key: key);
+  const OnboardingScreen({super.key});
 
   @override
   ConsumerState<OnboardingScreen> createState() => _OnboardingScreenState();
@@ -137,7 +137,7 @@ class OnboardingPage {
 class OnboardingPageWidget extends StatelessWidget {
   final OnboardingPage page;
 
-  const OnboardingPageWidget({Key? key, required this.page}) : super(key: key);
+  const OnboardingPageWidget({super.key, required this.page});
 
   @override
   Widget build(BuildContext context) {

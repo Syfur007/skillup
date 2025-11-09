@@ -4,7 +4,7 @@ import '../../explore/screens/roadmap_list_screen.dart';
 import '../../profile/screens/profile_screen.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({Key? key}) : super(key: key);
+  const HomeScreen({super.key});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -66,8 +66,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 // quick action: navigate to explore
                 setState(() => _selectedIndex = 1);
               },
-              child: const Icon(Icons.explore),
               tooltip: 'Explore roadmaps',
+              child: const Icon(Icons.explore),
             )
           : null,
     );
@@ -75,7 +75,7 @@ class _HomeScreenState extends State<HomeScreen> {
 }
 
 class _GroupsPlaceholder extends StatelessWidget {
-  const _GroupsPlaceholder({Key? key}) : super(key: key);
+  const _GroupsPlaceholder();
 
   @override
   Widget build(BuildContext context) {
