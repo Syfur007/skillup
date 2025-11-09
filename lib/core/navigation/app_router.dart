@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'route_names.dart';
 import 'error_screen.dart';
 import 'routes/auth_routes.dart';
+import 'package:skillup/features/auth/providers/auth_state_provider.dart';
 
 /// Provider to determine if onboarding has been completed.
 /// It asynchronously checks SharedPreferences.
@@ -23,12 +24,12 @@ final onboardingCompletedProvider = FutureProvider<bool>((ref) async {
 /// This provider can be watched by the app to react to auth state changes.
 /// All routes are centralized in the core/navigation/routes directory.
 final routerProvider = Provider<GoRouter>((ref) {
-  // TODO: Watch auth state when auth provider is ready
-  // final authState = ref.watch(authStateProvider);
+  // Watch auth state stream (Firebase persistent session)
+  final authStateAsync = ref.watch(authStateChangesProvider);
   final onboardingCompleted = ref.watch(onboardingCompletedProvider);
 
   return GoRouter(
-    initialLocation: RoutePaths.onboarding,
+    initialLocation: '/splash',
     debugLogDiagnostics: true,
 
     // Error handling for unknown routes
@@ -38,26 +39,56 @@ final routerProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) {
       final matchedLocation = state.matchedLocation;
 
-      // Use the result of the future provider. While loading, show a splash/loading screen.
+      // First, wait for onboarding check
       return onboardingCompleted.when(
         data: (isCompleted) {
-          // If onboarding is not completed, and we are not on the onboarding path, redirect to it.
-          if (!isCompleted && matchedLocation != RoutePaths.onboarding) {
-            return RoutePaths.onboarding;
-          }
-          // If onboarding is completed and the user is at the root/onboarding path, redirect to the dashboard.
-          if (isCompleted && matchedLocation == RoutePaths.onboarding) {
-            return RoutePaths.dashboard; // Assumes a '/dashboard' route exists
-          }
+          // Handle auth state
+          return authStateAsync.when(
+            data: (user) {
+              final isSignedIn = user != null;
 
-          // TODO: Add auth-based redirects here when ready
-          // return _handleAuthRedirect(state.matchedLocation, authState);
+              // Priority 1: If onboarding is not completed, redirect to onboarding (unless already there)
+              if (!isCompleted && matchedLocation != RoutePaths.onboarding) {
+                return RoutePaths.onboarding;
+              }
 
-          // No redirect needed, continue to the requested route.
-          return null;
+              // Priority 2: If onboarding is completed but not signed in
+              if (isCompleted && !isSignedIn) {
+                // Allow access to login and register screens
+                const authPaths = [RoutePaths.login, RoutePaths.register];
+                final isOnAuthPath = authPaths.any((path) => matchedLocation.startsWith(path));
+
+                if (!isOnAuthPath) {
+                  // Redirect from splash, onboarding, or any protected route to login
+                  return RoutePaths.login;
+                }
+
+                // Already on auth screen, no redirect needed
+                return null;
+              }
+
+              // Priority 3: If onboarding is completed AND user is signed in
+              if (isCompleted && isSignedIn) {
+                // Redirect from splash, onboarding, or auth screens to home
+                const publicPaths = [RoutePaths.login, RoutePaths.register, RoutePaths.onboarding, '/splash'];
+                final isOnPublicPath = publicPaths.any((path) => matchedLocation.startsWith(path));
+
+                if (isOnPublicPath) {
+                  return RoutePaths.home;
+                }
+
+                // Already on a protected route, no redirect needed
+                return null;
+              }
+
+              // No redirect needed
+              return null;
+            },
+            loading: () => '/splash',
+            error: (err, stack) => '/error',
+          );
         },
-        // Show a loading indicator while checking the onboarding status.
-        loading: () => '/splash', // You should create a simple splash screen for this route
+        loading: () => '/splash', // Show splash while checking onboarding
         error: (err, stack) => '/error', // Redirect to an error screen on failure
       );
     },
@@ -65,10 +96,6 @@ final routerProvider = Provider<GoRouter>((ref) {
     // Compose routes from all features using centralized route definitions
     routes: [
       ...AuthRoutes.routes,
-      // ...DashboardRoutes.routes,
-      // ...ExploreRoutes.routes,
-      // ...GroupsRoutes.routes,
-      // ...ProfileRoutes.routes,
 
       // It's good practice to have explicit routes for splash and error screens
       GoRoute(
@@ -79,23 +106,3 @@ final routerProvider = Provider<GoRouter>((ref) {
   );
 });
 
-/// Helper function for authentication-based redirects.
-///
-/// Uncomment and use when auth provider is implemented.
-// String? _handleAuthRedirect(String location, AuthState authState) {
-//   const publicPaths = ['/login', '/register'];
-//   final isPublicPath = publicPaths.any((path) => location.startsWith(path));
-//   final isAuthenticated = authState.isAuthenticated;
-//
-//   // Redirect to login if not authenticated and trying to access protected route
-//   if (!isAuthenticated && !isPublicPath) {
-//     return RoutePaths.login;
-//   }
-//
-//   // Redirect to home if authenticated and trying to access login/register
-//   if (isAuthenticated && isPublicPath) {
-//     return RoutePaths.dashboard;
-//   }
-//
-//   return null;
-// }

@@ -9,6 +9,11 @@ import 'package:skillup/features/auth/screens/login_screen.dart';
 import 'package:skillup/features/auth/screens/onboarding_screen.dart';
 import 'package:skillup/features/auth/screens/registration_screen.dart';
 import 'package:skillup/features/dashboard/screens/dashboard_screen.dart';
+import 'package:skillup/features/explore/screens/roadmap_list_screen.dart';
+import 'package:skillup/features/explore/screens/roadmap_detail_screen.dart';
+import 'package:skillup/features/home/screens/home_screen.dart';
+import 'package:skillup/features/profile/screens/profile_screen.dart';
+import 'package:skillup/features/explore/models/roadmap.dart';
 
 /// Authentication feature routes
 class AuthRoutes {
@@ -36,6 +41,42 @@ class AuthRoutes {
       name: RouteNames.dashboard,
       pageBuilder: (context, state) =>
           MaterialPage(key: state.pageKey, child: const DashboardScreen()),
+    ),
+    GoRoute(
+      path: RoutePaths.profile,
+      name: RouteNames.profile,
+      pageBuilder: (context, state) =>
+          MaterialPage(key: state.pageKey, child: const ProfileScreen()),
+    ),
+    GoRoute(
+      path: RoutePaths.roadmapList,
+      name: RouteNames.roadmapList,
+      pageBuilder: (context, state) =>
+          MaterialPage(key: state.pageKey, child: const RoadmapListScreen()),
+    ),
+    GoRoute(
+      path: RoutePaths.roadmapDetail,
+      name: RouteNames.roadmapDetail,
+      pageBuilder: (context, state) {
+        final extra = state.extra;
+        if (extra is Roadmap) {
+          return MaterialPage(key: state.pageKey, child: RoadmapDetailScreen(roadmap: extra));
+        }
+
+        return MaterialPage(
+          key: state.pageKey,
+          child: Scaffold(
+            appBar: AppBar(title: const Text('Roadmap')),
+            body: const Center(child: Text('Roadmap not found')),
+          ),
+        );
+      },
+    ),
+    GoRoute(
+      path: RoutePaths.home,
+      name: RouteNames.home,
+      pageBuilder: (context, state) =>
+          MaterialPage(key: state.pageKey, child: const HomeScreen()),
     ),
   ];
 }

@@ -16,6 +16,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isObscure = true;
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -24,15 +25,25 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _handleLogin() {
-    if (_formKey.currentState!.validate()) {
-      // TODO: Implement login logic
+  Future<void> _handleLogin() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() => _isLoading = true);
+
+    try {
+      await AuthProvider().signIn(
+        _emailController.text.trim(),
+        _passwordController.text,
+      );
+      // Navigate to home on success
+      if (mounted) context.goToNamed(RouteNames.home);
+    } catch (e) {
+      final message = e is Exception ? e.toString().replaceFirst('Exception: ', '') : 'Login failed';
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
       if (kDebugMode) {
-        print('Login form is valid');
-        print('Email: ${_emailController.text}');
-        print('Password: ${_passwordController.text}');
+        print('Login error: $e');
       }
-      context.goToNamed(RouteNames.dashboard);
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -99,12 +110,20 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   SizedBox(height: 20),
                   ElevatedButton(
-                    onPressed: () {
-                      if (_formKey.currentState!.validate()) {
-                        _handleLogin();
-                      }
-                    },
-                    child: Text("Login"),
+                    onPressed: _isLoading
+                        ? null
+                        : () {
+                            if (_formKey.currentState!.validate()) {
+                              _handleLogin();
+                            }
+                          },
+                    child: _isLoading
+                        ? const SizedBox(
+                            height: 16,
+                            width: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('Login'),
                   ),
                   TextButton(onPressed: () {}, child: Text("Forgot Password?")),
                   SizedBox(height: 16),

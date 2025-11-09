@@ -5,7 +5,7 @@ import 'package:skillup/core/navigation/navigation.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
-  const OnboardingScreen({Key? key}) : super(key: key);
+  const OnboardingScreen({super.key});
 
   @override
   ConsumerState<OnboardingScreen> createState() => _OnboardingScreenState();
@@ -58,9 +58,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
     // Wait for the provider to resolve so the router's redirect will observe the updated value.
     // This avoids racing with GoRouter's redirect that would otherwise send us back to onboarding.
+    // After onboarding is completed, router will redirect to login (if not signed in) or home (if signed in)
     try {
       final isCompleted = await ref.read(onboardingCompletedProvider.future);
       if (isCompleted && mounted) {
+        // Navigate to login - router will handle redirects based on auth state
         context.goToNamed(RouteNames.login);
       }
     } catch (_) {
@@ -137,7 +139,7 @@ class OnboardingPage {
 class OnboardingPageWidget extends StatelessWidget {
   final OnboardingPage page;
 
-  const OnboardingPageWidget({Key? key, required this.page}) : super(key: key);
+  const OnboardingPageWidget({super.key, required this.page});
 
   @override
   Widget build(BuildContext context) {
