@@ -14,6 +14,11 @@ import 'package:skillup/features/auth/providers/auth_provider.dart' as app_auth;
 import 'package:firebase_auth/firebase_auth.dart' as fb;
 import 'dart:async';
 
+// Widgets
+import '../widgets/profile_header.dart';
+import '../widgets/profile_info_row.dart';
+import '../widgets/privacy_chip.dart';
+
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
@@ -21,8 +26,7 @@ class ProfileScreen extends StatefulWidget {
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen>
-    with SingleTickerProviderStateMixin {
+class _ProfileScreenState extends State<ProfileScreen> {
   final _userService = FirestoreUserService();
   final _roadmapService = MockRoadmapService();
 
@@ -31,19 +35,11 @@ class _ProfileScreenState extends State<ProfileScreen>
   List<Roadmap> _allRoadmaps = [];
   bool _loading = true;
   bool _isSigningOut = false;
-  late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
     _load();
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
   }
 
   Future<void> _load() async {
@@ -103,34 +99,6 @@ class _ProfileScreenState extends State<ProfileScreen>
     }
   }
 
-  Widget _avatar(String key, double size) {
-    // map avatarKey to a built-in icon/avatar
-    switch (key) {
-      case 'group':
-        return CircleAvatar(
-          radius: size / 2,
-          backgroundColor: Colors.blue.shade50,
-          child: Icon(Icons.group, size: size * 0.5, color: Colors.blue),
-        );
-      case 'trophy':
-        return CircleAvatar(
-          radius: size / 2,
-          backgroundColor: Colors.amber.shade50,
-          child: Icon(
-            Icons.emoji_events,
-            size: size * 0.5,
-            color: Colors.amber.shade700,
-          ),
-        );
-      default:
-        return CircleAvatar(
-          radius: size / 2,
-          backgroundColor: Colors.grey.shade300,
-          child: FlutterLogo(size: size * 0.6),
-        );
-    }
-  }
-
   int get _activeCount => _userRoadmaps.length;
   int get _completedCount =>
       _userRoadmaps.where((r) => r.progress >= 1.0).length;
@@ -182,70 +150,20 @@ class _ProfileScreenState extends State<ProfileScreen>
     }
   }
 
-  Widget _buildHeader() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Theme.of(context).primaryColor.withValues(alpha: 0.9),
-            Theme.of(context).primaryColor.withValues(alpha: 0.12),
-          ],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        ),
-      ),
-      child: Column(
-        children: [
-          _avatar(_user?.avatarKey ?? 'default', 100),
-          const SizedBox(height: 12),
-          Text(
-            _user?.displayName ?? _user?.username ?? 'New user',
-            style: Theme.of(
-              context,
-            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Column(
-                children: [
-                  Text('Active', style: Theme.of(context).textTheme.bodySmall),
-                  const SizedBox(height: 6),
-                  Text(
-                    '$_activeCount',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                ],
-              ),
-              const SizedBox(width: 24),
-              Column(
-                children: [
-                  Text(
-                    'Completed',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    '$_completedCount',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildProfileTab() {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Profile header widget
+          ProfileHeader(
+            user: _user,
+            activeCount: _activeCount,
+            completedCount: _completedCount,
+          ),
+          const SizedBox(height: 16),
+
           // Account Information Card
           Card(
             child: Padding(
@@ -264,19 +182,19 @@ class _ProfileScreenState extends State<ProfileScreen>
                     ],
                   ),
                   const Divider(),
-                  _buildInfoRow('Username', _user?.username ?? 'N/A'),
+                  ProfileInfoRow(label: 'Username', value: _user?.username ?? 'N/A'),
                   if (_user?.displayName != null)
-                    _buildInfoRow('Display Name', _user!.displayName!),
+                    ProfileInfoRow(label: 'Display Name', value: _user!.displayName!),
                   if (_user?.privacySettings.emailVisible ?? false)
-                    _buildInfoRow('Email', _user?.email ?? 'N/A', icon: Icons.email),
-                  _buildInfoRow(
-                    'Member Since',
-                    _formatDate(_user?.createdAt),
+                    ProfileInfoRow(label: 'Email', value: _user?.email ?? 'N/A', icon: Icons.email),
+                  ProfileInfoRow(
+                    label: 'Member Since',
+                    value: _formatDate(_user?.createdAt),
                     icon: Icons.calendar_today,
                   ),
-                  _buildInfoRow(
-                    'Total Points',
-                    '${_user?.totalPoints ?? 0}',
+                  ProfileInfoRow(
+                    label: 'Total Points',
+                    value: '${_user?.totalPoints ?? 0}',
                     icon: Icons.stars,
                   ),
                 ],
@@ -376,22 +294,10 @@ class _ProfileScreenState extends State<ProfileScreen>
                     spacing: 8,
                     runSpacing: 8,
                     children: [
-                      _buildPrivacyChip(
-                        'Email',
-                        _user?.privacySettings.emailVisible ?? false,
-                      ),
-                      _buildPrivacyChip(
-                        'Interests',
-                        _user?.privacySettings.interestsVisible ?? true,
-                      ),
-                      _buildPrivacyChip(
-                        'Bio',
-                        _user?.privacySettings.bioVisible ?? true,
-                      ),
-                      _buildPrivacyChip(
-                        'Progress',
-                        _user?.privacySettings.progressVisible ?? true,
-                      ),
+                      PrivacyChip('Email', _user?.privacySettings.emailVisible ?? false),
+                      PrivacyChip('Interests', _user?.privacySettings.interestsVisible ?? true),
+                      PrivacyChip('Bio', _user?.privacySettings.bioVisible ?? true),
+                      PrivacyChip('Progress', _user?.privacySettings.progressVisible ?? true),
                     ],
                   ),
                 ],
@@ -417,57 +323,6 @@ class _ProfileScreenState extends State<ProfileScreen>
         ],
       ),
     );
-  }
-
-  Widget _buildInfoRow(String label, String value, {IconData? icon}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (icon != null) ...[
-            Icon(icon, size: 16, color: Colors.grey),
-            const SizedBox(width: 8),
-          ],
-          Expanded(
-            flex: 2,
-            child: Text(
-              label,
-              style: const TextStyle(fontWeight: FontWeight.w500),
-            ),
-          ),
-          Expanded(
-            flex: 3,
-            child: Text(
-              value,
-              style: TextStyle(color: Colors.grey[700]),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPrivacyChip(String label, bool isVisible) {
-    return Chip(
-      label: Text(label),
-      avatar: Icon(
-        isVisible ? Icons.visibility : Icons.visibility_off,
-        size: 16,
-      ),
-      backgroundColor: isVisible
-          ? Colors.green.withAlpha(25)
-          : Colors.grey.withAlpha(25),
-    );
-  }
-
-  String _formatDate(DateTime? date) {
-    if (date == null) return 'N/A';
-    final months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-    ];
-    return '${months[date.month - 1]} ${date.day}, ${date.year}';
   }
 
   Widget _buildRoadmapsTab() {
@@ -605,70 +460,43 @@ class _ProfileScreenState extends State<ProfileScreen>
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
-    return Scaffold(
-      body: NestedScrollView(
-        headerSliverBuilder: (context, inner) => [
-          SliverAppBar(
-            expandedHeight: 220,
-            pinned: true,
-            actions: [
-              IconButton(
-                tooltip: 'Logout',
-                onPressed: _isSigningOut ? null : _handleSignOut,
-                icon: _isSigningOut
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.logout),
-              ),
-            ],
-            flexibleSpace: FlexibleSpaceBar(background: _buildHeader()),
-          ),
-          SliverPersistentHeader(
-            pinned: true,
-            delegate: _SliverTabBarDelegate(
-              TabBar(
-                controller: _tabController,
-                tabs: const [
-                  Tab(text: 'PROFILE'),
-                  Tab(text: 'ROADMAPS'),
-                ],
-              ),
+    // Use a simple AppBar with TabBar for navigation. DefaultTabController
+    // makes TabController management easier and keeps the topbar simple.
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(_user?.displayName ?? 'Profile'),
+          actions: [
+            IconButton(
+              tooltip: 'Logout',
+              onPressed: _isSigningOut ? null : _handleSignOut,
+              icon: _isSigningOut
+                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Icon(Icons.logout),
             ),
+          ],
+          bottom: const TabBar(
+            tabs: [
+              Tab(text: 'PROFILE'),
+              Tab(text: 'ROADMAPS'),
+            ],
           ),
-        ],
+        ),
         body: TabBarView(
-          controller: _tabController,
           children: [_buildProfileTab(), _buildRoadmapsTab()],
         ),
       ),
     );
   }
-}
 
-class _SliverTabBarDelegate extends SliverPersistentHeaderDelegate {
-  final TabBar tabBar;
-  _SliverTabBarDelegate(this.tabBar);
 
-  @override
-  double get minExtent => tabBar.preferredSize.height;
-  @override
-  double get maxExtent => tabBar.preferredSize.height;
-
-  @override
-  Widget build(
-    BuildContext context,
-    double shrinkOffset,
-    bool overlapsContent,
-  ) {
-    return Container(
-      color: Theme.of(context).scaffoldBackgroundColor,
-      child: tabBar,
-    );
+  String _formatDate(DateTime? date) {
+    if (date == null) return 'N/A';
+    final months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+    return '${months[date.month - 1]} ${date.day}, ${date.year}';
   }
-
-  @override
-  bool shouldRebuild(covariant _SliverTabBarDelegate oldDelegate) => false;
 }
