@@ -10,4 +10,3 @@ final authStateChangesProvider = StreamProvider<User?>((ref) {
   // Use the repository which wraps FirebaseAuth for consistency with the codebase.
   return AuthRepositoryImpl().authStateChanges;
 });
-

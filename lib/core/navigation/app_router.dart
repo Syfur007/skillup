@@ -42,35 +42,43 @@ final routerProvider = Provider<GoRouter>((ref) {
       // First, wait for onboarding check
       return onboardingCompleted.when(
         data: (isCompleted) {
-          // If onboarding is not completed, and we are not on the onboarding path, redirect to it.
-          if (!isCompleted && matchedLocation != RoutePaths.onboarding) {
-            return RoutePaths.onboarding;
-          }
-
-          // If onboarding is completed and the user is at the onboarding path, let auth decide the next screen
-          if (isCompleted && matchedLocation == RoutePaths.onboarding) {
-            // fallthrough to auth logic below
-          }
-
           // Handle auth state
           return authStateAsync.when(
             data: (user) {
               final isSignedIn = user != null;
 
-              // If user is signed in and currently on auth/public pages, redirect to home
-              const publicPaths = [RoutePaths.login, RoutePaths.register, RoutePaths.onboarding, '/splash'];
-              final isOnPublicPath = publicPaths.any((path) => matchedLocation.startsWith(path));
-
-              if (isSignedIn && isOnPublicPath) {
-                return RoutePaths.home;
+              // Priority 1: If onboarding is not completed, redirect to onboarding (unless already there)
+              if (!isCompleted && matchedLocation != RoutePaths.onboarding) {
+                return RoutePaths.onboarding;
               }
 
-              // If user is NOT signed in and trying to access protected routes, redirect to login
-              const protectedPaths = [RoutePaths.home, RoutePaths.profile, RoutePaths.roadmapList];
-              final isOnProtected = protectedPaths.any((path) => matchedLocation.startsWith(path));
+              // Priority 2: If onboarding is completed but not signed in
+              if (isCompleted && !isSignedIn) {
+                // Allow access to login and register screens
+                const authPaths = [RoutePaths.login, RoutePaths.register];
+                final isOnAuthPath = authPaths.any((path) => matchedLocation.startsWith(path));
 
-              if (!isSignedIn && isOnProtected) {
-                return RoutePaths.login;
+                if (!isOnAuthPath) {
+                  // Redirect from splash, onboarding, or any protected route to login
+                  return RoutePaths.login;
+                }
+
+                // Already on auth screen, no redirect needed
+                return null;
+              }
+
+              // Priority 3: If onboarding is completed AND user is signed in
+              if (isCompleted && isSignedIn) {
+                // Redirect from splash, onboarding, or auth screens to home
+                const publicPaths = [RoutePaths.login, RoutePaths.register, RoutePaths.onboarding, '/splash'];
+                final isOnPublicPath = publicPaths.any((path) => matchedLocation.startsWith(path));
+
+                if (isOnPublicPath) {
+                  return RoutePaths.home;
+                }
+
+                // Already on a protected route, no redirect needed
+                return null;
               }
 
               // No redirect needed
