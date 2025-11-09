@@ -5,6 +5,10 @@ import 'package:flutter/material.dart';
 import '../models/user.dart';
 import '../services/mock_user_service.dart';
 import 'package:skillup/screens/onboarding/profile_setup_screen.dart';
+import 'package:skillup/features/auth/providers/auth_provider.dart' as app_auth;
+import 'package:skillup/core/navigation/navigation.dart';
+import 'package:firebase_auth/firebase_auth.dart' as fb;
+import 'dart:async';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -17,6 +21,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final _service = MockUserService();
   User? _user;
   bool _loading = true;
+  bool _isSigningOut = false;
 
   @override
   void initState() {
@@ -31,6 +36,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _user = user;
       _loading = false;
     });
+  }
+
+  Future<void> _handleSignOut() async {
+    if (_isSigningOut) return;
+    setState(() => _isSigningOut = true);
+    Exception? error;
+    try {
+      // Add a timeout to avoid hanging indefinitely if signOut doesn't complete.
+      await app_auth.AuthProvider().signOut().timeout(const Duration(seconds: 10));
+
+      // Wait a short period for Firebase to update the currentUser to null.
+      final end = DateTime.now().add(const Duration(seconds: 3));
+      while (fb.FirebaseAuth.instance.currentUser != null && DateTime.now().isBefore(end)) {
+        await Future.delayed(const Duration(milliseconds: 150));
+      }
+    } on TimeoutException catch (_) {
+      error = Exception('Sign out timed out.');
+    } catch (e) {
+      error = e is Exception ? e : Exception('Sign out failed');
+    } finally {
+      // Ensure loading flag is cleared if still mounted.
+      if (mounted) setState(() => _isSigningOut = false);
+
+      // Show error if any
+      if (error != null && mounted) {
+        final message = error.toString().replaceFirst('Exception: ', '');
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+      }
+
+      // Navigate to login regardless to ensure UI doesn't remain stuck on a page
+      // that expects a signed-in user. The router will also react to auth state.
+      if (mounted) context.goToNamed(RouteNames.login);
+    }
   }
 
   Widget _avatar(String key, double size) {
@@ -94,7 +132,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Profile')),
+      appBar: AppBar(
+        title: const Text('Profile'),
+        actions: [
+          IconButton(
+            tooltip: 'Logout',
+            onPressed: _isSigningOut ? null : _handleSignOut,
+            icon: _isSigningOut
+                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                : const Icon(Icons.logout),
+          ),
+        ],
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -125,6 +174,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 await _load();
               },
               child: const Text('Edit Profile'),
+            ),
+            const SizedBox(height: 12),
+            ElevatedButton(
+              onPressed: _isSigningOut ? null : _handleSignOut,
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              child: _isSigningOut
+                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Text('Logout'),
             ),
           ],
         ),

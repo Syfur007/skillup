@@ -11,8 +11,7 @@ import '../widgets/roadmap_stage_widget.dart';
 class RoadmapDetailScreen extends StatelessWidget {
   final Roadmap roadmap;
 
-  const RoadmapDetailScreen({Key? key, required this.roadmap})
-    : super(key: key);
+  const RoadmapDetailScreen({super.key, required this.roadmap});
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +21,7 @@ class RoadmapDetailScreen extends StatelessWidget {
         children: [
           Container(
             padding: const EdgeInsets.all(16),
-            color: Theme.of(context).primaryColor.withOpacity(0.1),
+            color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
