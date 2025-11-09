@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:skillup/core/navigation/navigation_extensions.dart';
+import 'package:skillup/core/navigation/route_names.dart';
 import '../../features/profile/models/user.dart';
-import '../../features/profile/services/mock_user_service.dart';
+import '../../features/profile/services/firestore_user_service.dart';
+import 'package:firebase_auth/firebase_auth.dart' as fb;
 
 class ProfileSetupScreen extends StatefulWidget {
   const ProfileSetupScreen({Key? key}) : super(key: key);
@@ -15,7 +18,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   final _usernameCtrl = TextEditingController();
   final _bioCtrl = TextEditingController();
   final _interestsCtrl = TextEditingController();
-  final _service = MockUserService();
+  final _service = FirestoreUserService();
 
   String _avatarKey = 'default';
   String? _usernameError;
@@ -36,40 +39,72 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   }
 
   Future<void> _save() async {
-    setState(() {
-      _usernameError = null;
-    });
-
     if (!_formKey.currentState!.validate()) return;
 
-    final username = _usernameCtrl.text.trim();
-    setState(() => _saving = true);
-    final isUnique = await _service.isUsernameUnique(username);
-    if (!isUnique) {
-      setState(() {
-        _usernameError = 'Username already taken';
-        _saving = false;
-      });
-      return;
+    setState(() {
+      _usernameError = null;
+      _saving = true;
+    });
+
+    try {
+      // Ensure the user is signed in before attempting to save to Firestore.
+      final current = fb.FirebaseAuth.instance.currentUser;
+      if (current == null) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('You must be signed in to save your profile.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+      final username = _usernameCtrl.text.trim();
+      final isUnique = await _service.isUsernameUnique(username);
+
+      if (!isUnique) {
+        setState(() => _usernameError = 'Username already taken');
+        return;
+      }
+
+      final bio = _bioCtrl.text.trim();
+      final interests = _interestsCtrl.text
+          .split(',')
+          .map((s) => s.trim())
+          .where((s) => s.isNotEmpty)
+          .toList();
+
+      final user = User(
+        username: username,
+        bio: bio.isEmpty ? null : bio,
+        interests: interests.isEmpty ? null : interests,
+        avatarKey: _avatarKey,
+      );
+
+      await _service.saveUser(user);
+
+      if (!mounted) return;
+
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Profile updated successfully')),
+      );
+
+      // Navigate using GoRouter
+      context.goToNamed(RouteNames.profile);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to save profile'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _saving = false);
+      }
     }
-
-    final bio = _bioCtrl.text.trim();
-    final interests = _interestsCtrl.text
-        .split(',')
-        .map((s) => s.trim())
-        .where((s) => s.isNotEmpty)
-        .toList();
-
-    final user = User(
-      username: username,
-      bio: bio.isEmpty ? null : bio,
-      interests: interests.isEmpty ? null : interests,
-      avatarKey: _avatarKey,
-    );
-
-    await _service.saveUser(user);
-    if (!mounted) return;
-    Navigator.pushReplacementNamed(context, '/dashboard');
   }
 
   void _skip() {

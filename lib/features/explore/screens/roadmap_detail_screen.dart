@@ -7,17 +7,75 @@
 import 'package:flutter/material.dart';
 import '../models/roadmap.dart';
 import '../widgets/roadmap_stage_widget.dart';
+import '../../profile/services/firestore_user_service.dart';
 
-class RoadmapDetailScreen extends StatelessWidget {
+class RoadmapDetailScreen extends StatefulWidget {
   final Roadmap roadmap;
 
   const RoadmapDetailScreen({Key? key, required this.roadmap})
     : super(key: key);
 
   @override
+  _RoadmapDetailScreenState createState() => _RoadmapDetailScreenState();
+}
+
+class _RoadmapDetailScreenState extends State<RoadmapDetailScreen> {
+  final _userService = FirestoreUserService();
+  bool _isLoading = false;
+  bool _isInProfile = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkRoadmapStatus();
+  }
+
+  Future<void> _checkRoadmapStatus() async {
+    final isInProfile = await _userService.hasRoadmap(widget.roadmap.id);
+    if (mounted) {
+      setState(() => _isInProfile = isInProfile);
+    }
+  }
+
+  Future<void> _toggleRoadmap() async {
+    setState(() => _isLoading = true);
+    try {
+      if (_isInProfile) {
+        await _userService.removeRoadmap(widget.roadmap.id);
+      } else {
+        await _userService.addRoadmap(widget.roadmap.id);
+      }
+      if (mounted) {
+        setState(() => _isInProfile = !_isInProfile);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              _isInProfile
+                  ? 'Added to your profile'
+                  : 'Removed from your profile',
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(roadmap.title)),
+      appBar: AppBar(
+        title: Text(widget.roadmap.title),
+        actions: [
+          IconButton(
+            icon: Icon(_isInProfile ? Icons.bookmark : Icons.bookmark_border),
+            onPressed: _isLoading ? null : _toggleRoadmap,
+          ),
+        ],
+      ),
       body: Column(
         children: [
           Container(
@@ -27,7 +85,7 @@ class RoadmapDetailScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  roadmap.description,
+                  widget.roadmap.description,
                   style: Theme.of(context).textTheme.bodyLarge,
                 ),
                 const SizedBox(height: 16),
@@ -45,10 +103,10 @@ class RoadmapDetailScreen extends StatelessWidget {
           ),
           Expanded(
             child: ListView.builder(
-              itemCount: roadmap.stages.length,
+              itemCount: widget.roadmap.stages.length,
               itemBuilder: (context, index) {
                 return RoadmapStageWidget(
-                  stage: roadmap.stages[index],
+                  stage: widget.roadmap.stages[index],
                   stageNumber: index + 1,
                 );
               },
