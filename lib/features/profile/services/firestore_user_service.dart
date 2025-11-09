@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb;
-import '../../../domain/models/user.dart';
-import '../../../domain/models/user_roadmap.dart';
+import '../../../domain/entities/user.dart';
+import '../../../domain/entities/user_roadmap.dart';
 
 class FirestoreUserService {
   final FirebaseFirestore _firestore;

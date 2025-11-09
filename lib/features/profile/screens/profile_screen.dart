@@ -2,10 +2,10 @@
 // User profile screen for viewing and editing user profile information.
 
 import 'package:flutter/material.dart';
-import '../../explore/models/roadmap.dart';
+import 'package:skillup/domain/entities/roadmap.dart';
 import '../../explore/services/mock_roadmap_service.dart';
-import '../../../domain/models/user.dart';
-import '../../../domain/models/user_roadmap.dart';
+import '../../../domain/entities/user.dart';
+import '../../../domain/entities/user_roadmap.dart';
 import '../services/firestore_user_service.dart';
 import 'package:skillup/features/profile/screens/profile_setup_screen.dart';
 import 'package:skillup/core/navigation/navigation_extensions.dart';
@@ -51,7 +51,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (!mounted) return;
       setState(() {
         _user = user;
-        _allRoadmaps = all;
+        _allRoadmaps = all.cast<Roadmap>();
         _userRoadmaps = assigned;
         _loading = false;
       });
@@ -173,8 +173,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.person, size: 20, color: Theme.of(context).primaryColor),
-                      const SizedBox(width: 8),
                       Text(
                         'Account Information',
                         style: Theme.of(context).textTheme.titleMedium,
@@ -182,7 +180,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ],
                   ),
                   const Divider(),
-                  ProfileInfoRow(label: 'Username', value: _user?.username ?? 'N/A'),
+                  ProfileInfoRow(label: 'Username', value: _user?.username ?? 'N/A', icon: Icons.person,),
                   if (_user?.displayName != null)
                     ProfileInfoRow(label: 'Display Name', value: _user!.displayName!),
                   if (_user?.privacySettings.emailVisible ?? false)
@@ -391,7 +389,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           const SizedBox(height: 6),
                           LinearProgressIndicator(value: progress),
                           const SizedBox(height: 6),
-                          Text('${r.stages.length} stages'),
+                          Text('${r.tags.length} stages'),
                         ],
                       ),
                       trailing: IconButton(

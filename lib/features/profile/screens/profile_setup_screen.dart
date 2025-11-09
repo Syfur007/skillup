@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:skillup/core/navigation/navigation_extensions.dart';
 import 'package:skillup/core/navigation/route_names.dart';
-import '../../../domain/models/user.dart';
+import '../../../domain/entities/user.dart';
 import '../services/firestore_user_service.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb;
 
