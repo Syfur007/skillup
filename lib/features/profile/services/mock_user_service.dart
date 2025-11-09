@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../../domain/models/user.dart';
-import '../../../domain/models/user_roadmap.dart';
+import '../../../domain/entities/user.dart';
+import '../../../domain/entities/user_roadmap.dart';
 
 class MockUserService {
   static const _usersKey = 'mock_users';

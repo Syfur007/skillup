@@ -5,6 +5,17 @@ class Roadmap {
   final String category;
   final String iconName;
   final List<RoadmapStage> stages;
+  final String? imageUrl;
+  final String difficulty; // beginner, intermediate, advanced, expert
+  final int estimatedHours;
+  final int totalModules;
+  final int totalStages;
+  final int totalTasks;
+  final String createdBy;
+  final double averageRating;
+  final int enrolledCount;
+  final List<String> tags;
+  final List<String> moduleIds;
 
   Roadmap({
     required this.id,
@@ -13,6 +24,17 @@ class Roadmap {
     required this.category,
     required this.iconName,
     required this.stages,
+    this.imageUrl,
+    this.difficulty = 'beginner',
+    this.estimatedHours = 0,
+    this.totalModules = 0,
+    this.totalStages = 0,
+    this.totalTasks = 0,
+    this.createdBy = 'Unknown',
+    this.averageRating = 0.0,
+    this.enrolledCount = 0,
+    this.tags = const [],
+    this.moduleIds = const [],
   });
 
   Map<String, dynamic> toJson() {
@@ -22,6 +44,17 @@ class Roadmap {
       'category': category,
       'iconName': iconName,
       'stages': stages.map((s) => s.toJson()).toList(),
+      'imageUrl': imageUrl,
+      'difficulty': difficulty,
+      'estimatedHours': estimatedHours,
+      'totalModules': totalModules,
+      'totalStages': totalStages,
+      'totalTasks': totalTasks,
+      'createdBy': createdBy,
+      'averageRating': averageRating,
+      'enrolledCount': enrolledCount,
+      'tags': tags,
+      'moduleIds': moduleIds,
     };
   }
 
@@ -37,6 +70,17 @@ class Roadmap {
               ?.map((s) => RoadmapStage.fromJson(s as Map<String, dynamic>))
               .toList() ??
           [],
+      imageUrl: json['imageUrl'] as String?,
+      difficulty: json['difficulty'] as String? ?? 'beginner',
+      estimatedHours: json['estimatedHours'] as int? ?? 0,
+      totalModules: json['totalModules'] as int? ?? 0,
+      totalStages: json['totalStages'] as int? ?? 0,
+      totalTasks: json['totalTasks'] as int? ?? 0,
+      createdBy: json['createdBy'] as String? ?? 'Unknown',
+      averageRating: (json['averageRating'] as num?)?.toDouble() ?? 0.0,
+      enrolledCount: json['enrolledCount'] as int? ?? 0,
+      tags: (json['tags'] as List<dynamic>?)?.map((e) => e as String).toList() ?? [],
+      moduleIds: (json['moduleIds'] as List<dynamic>?)?.map((e) => e as String).toList() ?? [],
     );
   }
 }

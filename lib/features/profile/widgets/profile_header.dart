@@ -1,6 +1,6 @@
 // profile_header.dart
 import 'package:flutter/material.dart';
-import '../../../domain/models/user.dart';
+import '../../../domain/entities/user.dart';
 
 class ProfileHeader extends StatelessWidget {
   final User? user;

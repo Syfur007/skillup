@@ -1,12 +1,7 @@
-// roadmap_detail_screen.dart
-// Screen that shows detailed information about a single roadmap. Should accept
-// a Roadmap entity and render its content.
-
-// Placeholder: implement RoadmapDetailScreen widget here.
-
 import 'package:flutter/material.dart';
 import '../models/roadmap.dart';
-import '../widgets/roadmap_stage_widget.dart';
+import '../widgets/roadmap_detail_header.dart';
+import '../widgets/roadmap_stage_expanded.dart';
 import '../../profile/services/firestore_user_service.dart';
 
 class RoadmapDetailScreen extends StatefulWidget {
@@ -16,18 +11,27 @@ class RoadmapDetailScreen extends StatefulWidget {
     : super(key: key);
 
   @override
-  _RoadmapDetailScreenState createState() => _RoadmapDetailScreenState();
+  State<RoadmapDetailScreen> createState() => _RoadmapDetailScreenState();
 }
 
-class _RoadmapDetailScreenState extends State<RoadmapDetailScreen> {
+class _RoadmapDetailScreenState extends State<RoadmapDetailScreen>
+    with SingleTickerProviderStateMixin {
   final _userService = FirestoreUserService();
+  late TabController _tabController;
   bool _isLoading = false;
   bool _isInProfile = false;
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
     _checkRoadmapStatus();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   Future<void> _checkRoadmapStatus() async {
@@ -57,6 +61,15 @@ class _RoadmapDetailScreenState extends State<RoadmapDetailScreen> {
           ),
         );
       }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -69,51 +82,392 @@ class _RoadmapDetailScreenState extends State<RoadmapDetailScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.roadmap.title),
+        elevation: 0,
         actions: [
           IconButton(
-            icon: Icon(_isInProfile ? Icons.bookmark : Icons.bookmark_border),
+            icon: Icon(
+              _isInProfile ? Icons.bookmark : Icons.bookmark_border,
+              color: _isInProfile ? Colors.amber : null,
+            ),
             onPressed: _isLoading ? null : _toggleRoadmap,
+            tooltip: _isInProfile ? 'Remove from profile' : 'Add to profile',
+          ),
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              if (value == 'share') {
+                _showShareDialog();
+              } else if (value == 'report') {
+                _showReportDialog();
+              }
+            },
+            itemBuilder: (BuildContext context) => [
+              const PopupMenuItem(value: 'share', child: Text('Share')),
+              const PopupMenuItem(value: 'report', child: Text('Report')),
+            ],
           ),
         ],
       ),
-      body: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            color: Theme.of(context).primaryColor.withOpacity(0.1),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  widget.roadmap.description,
-                  style: Theme.of(context).textTheme.bodyLarge,
-                ),
-                const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: () {
-                    // TODO: Implement start roadmap logic
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Starting roadmap...')),
-                    );
-                  },
-                  child: const Text('Start Roadmap'),
-                ),
+      body: NestedScrollView(
+        headerSliverBuilder: (context, innerBoxIsScrolled) => [
+          SliverToBoxAdapter(
+            child: RoadmapDetailHeader(
+              title: widget.roadmap.title,
+              description: widget.roadmap.description,
+              imageUrl: widget.roadmap.imageUrl,
+              difficulty: widget.roadmap.difficulty,
+              estimatedHours: widget.roadmap.estimatedHours,
+              averageRating: widget.roadmap.averageRating,
+              enrolledCount: widget.roadmap.enrolledCount,
+              tags: widget.roadmap.tags,
+            ),
+          ),
+          SliverAppBar(
+            pinned: true,
+            automaticallyImplyLeading: false,
+            toolbarHeight: 0,
+            bottom: TabBar(
+              controller: _tabController,
+              tabs: const [
+                Tab(text: 'OVERVIEW'),
+                Tab(text: 'MODULES'),
               ],
             ),
           ),
-          Expanded(
-            child: ListView.builder(
-              itemCount: widget.roadmap.stages.length,
-              itemBuilder: (context, index) {
-                return RoadmapStageWidget(
-                  stage: widget.roadmap.stages[index],
-                  stageNumber: index + 1,
+        ],
+        body: TabBarView(
+          controller: _tabController,
+          children: [
+            _buildOverviewTab(),
+            _buildModulesTab(),
+          ],
+        ),
+      ),
+      floatingActionButton: _isInProfile
+          ? FloatingActionButton.extended(
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Continue learning...')),
                 );
               },
+              label: const Text('Continue'),
+              icon: const Icon(Icons.arrow_forward),
+            )
+          : null,
+    );
+  }
+
+  Widget _buildOverviewTab() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Key Stats Card
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Roadmap Stats',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      _buildStatBox(
+                        context,
+                        label: 'Modules',
+                        value: '${widget.roadmap.totalModules}',
+                      ),
+                      _buildStatBox(
+                        context,
+                        label: 'Stages',
+                        value: '${widget.roadmap.totalStages}',
+                      ),
+                      _buildStatBox(
+                        context,
+                        label: 'Tasks',
+                        value: '${widget.roadmap.totalTasks}',
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
+          const SizedBox(height: 16),
+
+          // Category and Creator Info
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildInfoRow(
+                    context,
+                    label: 'Category',
+                    value: widget.roadmap.category,
+                    icon: Icons.category,
+                  ),
+                  const Divider(height: 16),
+                  _buildInfoRow(
+                    context,
+                    label: 'Difficulty',
+                    value: widget.roadmap.difficulty.toUpperCase(),
+                    icon: Icons.trending_up,
+                  ),
+                  const Divider(height: 16),
+                  _buildInfoRow(
+                    context,
+                    label: 'Duration',
+                    value: '${widget.roadmap.estimatedHours} hours',
+                    icon: Icons.schedule,
+                  ),
+                  const Divider(height: 16),
+                  _buildInfoRow(
+                    context,
+                    label: 'Created by',
+                    value: widget.roadmap.createdBy,
+                    icon: Icons.person,
+                  ),
+                  if (widget.roadmap.tags.isNotEmpty) ...[
+                    const Divider(height: 16),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Tags',
+                          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                                color: Colors.grey,
+                              ),
+                        ),
+                        const SizedBox(height: 8),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: widget.roadmap.tags.map((tag) {
+                            return Chip(
+                              label: Text(tag),
+                              backgroundColor: Theme.of(context)
+                                  .primaryColor
+                                  .withValues(alpha: 0.2),
+                            );
+                          }).toList(),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Description Expansion
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'About This Roadmap',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    widget.roadmap.description,
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
         ],
       ),
     );
   }
+
+  Widget _buildModulesTab() {
+    if (widget.roadmap.moduleIds.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.layers_clear,
+              size: 64,
+              color: Colors.grey[300],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'No modules available yet',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+          ],
+        ),
+      );
+    }
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: Column(
+        children: [
+          // Note: In a real implementation, you'd fetch and display Module data
+          // For now, showing placeholder with stage information
+          ...List.generate(widget.roadmap.stages.length, (index) {
+            final stage = widget.roadmap.stages[index];
+            return RoadmapStageExpanded(
+              stageTitle: stage.title,
+              stageDescription: stage.description,
+              taskCount: stage.steps.length,
+              resourceCount: 0, // To be populated from actual Module data
+              estimatedMinutes: stage.steps.fold(
+                0,
+                (sum, step) => sum + step.estimatedTime.inMinutes,
+              ),
+              isOptional: false,
+              tasks: stage.steps
+                  .map((step) => {
+                        'title': step.name,
+                        'description': step.description,
+                        'type': 'practice',
+                        'points': 0,
+                      })
+                  .toList(),
+            );
+          }).toList(),
+          const SizedBox(height: 24),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatBox(BuildContext context,
+      {required String label, required String value}) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Theme.of(context).primaryColor.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Column(
+          children: [
+            Text(
+              value,
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).primaryColor,
+                  ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: Theme.of(context).textTheme.labelSmall,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(
+    BuildContext context, {
+    required String label,
+    required String value,
+    required IconData icon,
+  }) {
+    return Row(
+      children: [
+        Icon(icon, size: 20, color: Theme.of(context).primaryColor),
+        const SizedBox(width: 12),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: Colors.grey,
+                  ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              value,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w500,
+                  ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  void _showShareDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Share Roadmap'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.link),
+              title: const Text('Copy Link'),
+              onTap: () {
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Link copied to clipboard')),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.share),
+              title: const Text('Share via...'),
+              onTap: () {
+                Navigator.pop(context);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showReportDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Report Roadmap'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              title: const Text('Inappropriate Content'),
+              onTap: () => Navigator.pop(context),
+            ),
+            ListTile(
+              title: const Text('Spam'),
+              onTap: () => Navigator.pop(context),
+            ),
+            ListTile(
+              title: const Text('Other'),
+              onTap: () => Navigator.pop(context),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
+
