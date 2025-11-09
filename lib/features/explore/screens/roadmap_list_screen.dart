@@ -6,7 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:skillup/core/navigation/navigation.dart';
 import 'package:skillup/core/navigation/route_names.dart';
 import '../models/roadmap.dart';
-import '../services/mock_roadmap_service.dart';
+import 'package:skillup/features/explore/screens/create_roadmap_screen.dart';
+import '../services/firestore_roadmap_service.dart';
 import '../widgets/roadmap_card.dart';
 
 class RoadmapListScreen extends StatefulWidget {
@@ -17,7 +18,7 @@ class RoadmapListScreen extends StatefulWidget {
 }
 
 class _RoadmapListScreenState extends State<RoadmapListScreen> {
-  final _service = MockRoadmapService();
+  final _service = FirestoreRoadmapService();
   List<Roadmap>? _roadmaps;
   bool _loading = true;
   String? _error;
@@ -55,6 +56,16 @@ class _RoadmapListScreenState extends State<RoadmapListScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Learning Roadmaps')),
+      floatingActionButton: FloatingActionButton(
+        child: const Icon(Icons.add),
+        onPressed: () async {
+          // open create roadmap screen using Navigator so we can await until it returns
+          await Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const CreateRoadmapScreen()),
+          );
+          await _loadRoadmaps();
+        },
+      ),
       body: _buildBody(),
     );
   }
@@ -100,7 +111,10 @@ class _RoadmapListScreenState extends State<RoadmapListScreen> {
             roadmap: roadmap,
             onTap: () {
               // Use GoRouter helper to push the roadmap detail path and pass the roadmap object as extra
-              context.pushPath(RoutePaths.roadmapDetailPath(roadmap.id), extra: roadmap);
+              context.pushPath(
+                RoutePaths.roadmapDetailPath(roadmap.id),
+                extra: roadmap,
+              );
             },
           );
         },
