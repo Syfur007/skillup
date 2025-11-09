@@ -18,6 +18,7 @@ class RouteNames {
   static const explore = 'explore';
   static const roadmapList = 'roadmap-list';
   static const roadmapDetail = 'roadmap-detail';
+  static const createRoadmap = 'create-roadmap';
 
   // Groups routes
   static const groups = 'groups';
@@ -45,6 +46,7 @@ class RoutePaths {
   static const explore = '/explore';
   static const roadmapList = '/explore/roadmaps';
   static const roadmapDetail = '/explore/roadmaps/:id';
+  static const createRoadmap = '/create-roadmap';
 
   // Groups paths
   static const groups = '/groups';
