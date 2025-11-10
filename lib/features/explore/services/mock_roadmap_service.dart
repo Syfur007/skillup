@@ -1,5 +1,5 @@
 import 'package:skillup/domain/entities/roadmap.dart';
-import '../models/sample_roadmap_data.dart';
+import '../providers/sample_roadmap_data.dart';
 
 class MockRoadmapService {
   Future<List<Roadmap>> getRoadmaps() async {

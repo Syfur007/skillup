@@ -23,6 +23,7 @@ class RouteNames {
   static const explore = 'explore';
   static const roadmapList = 'roadmap-list';
   static const roadmapDetail = 'roadmap-detail';
+  static const moduleDetail = 'module-detail';
   static const createRoadmap = 'create-roadmap';
 
   // Groups routes
@@ -56,6 +57,7 @@ class RoutePaths {
   static const explore = '/explore';
   static const roadmapList = '/explore/roadmaps';
   static const roadmapDetail = '/explore/roadmaps/:id';
+  static const moduleDetail = '/explore/modules/:id';
   static const createRoadmap = '/create-roadmap';
 
   // Groups paths
@@ -68,4 +70,5 @@ class RoutePaths {
 
   // Helper methods for dynamic paths
   static String roadmapDetailPath(String id) => '/explore/roadmaps/$id';
+  static String moduleDetailPath(String id) => '/explore/modules/$id';
 }

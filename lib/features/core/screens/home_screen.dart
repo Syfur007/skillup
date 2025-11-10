@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../dashboard/screens/dashboard_screen.dart';
-import '../../explore/screens/roadmap_list_screen.dart';
+import '../../explore/screens/explore_screen.dart';
 import '../../profile/screens/profile_screen.dart';
 
 class HomeScreen extends StatefulWidget {
