@@ -4,6 +4,7 @@ import '../widgets/roadmap_detail_header.dart';
 import '../widgets/roadmap_stage_expanded.dart';
 import '../../profile/services/firestore_user_service.dart';
 import '../models/sample_roadmap_data.dart';
+import 'package:skillup/core/navigation/navigation.dart';
 
 class RoadmapDetailScreen extends StatefulWidget {
   final Roadmap roadmap;
@@ -338,9 +339,8 @@ class _RoadmapDetailScreenState extends State<RoadmapDetailScreen>
                   subtitle: Text(moduleId),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Open module: $moduleId')),
-                    );
+                    // Navigate to module detail screen
+                    context.pushPath(RoutePaths.moduleDetailPath(moduleId));
                   },
                 ),
               );
@@ -358,9 +358,7 @@ class _RoadmapDetailScreenState extends State<RoadmapDetailScreen>
                     subtitle: Text(module.description),
                     trailing: const Icon(Icons.chevron_right),
                     onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Open module: ${module.id}')),
-                      );
+                      context.pushPath(RoutePaths.moduleDetailPath(module.id));
                     },
                   ),
                 ),
