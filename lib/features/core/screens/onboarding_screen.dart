@@ -58,11 +58,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
     // Wait for the provider to resolve so the router's redirect will observe the updated value.
     // This avoids racing with GoRouter's redirect that would otherwise send us back to onboarding.
-    // After onboarding is completed, router will redirect to login (if not signed in) or home (if signed in)
     try {
       final isCompleted = await ref.read(onboardingCompletedProvider.future);
       if (isCompleted && mounted) {
-        // Navigate to login - router will handle redirects based on auth state
         context.goToNamed(RouteNames.login);
       }
     } catch (_) {

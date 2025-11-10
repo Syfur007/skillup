@@ -3,7 +3,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:skillup/domain/entities/roadmap.dart';
-import '../../explore/services/mock_roadmap_service.dart';
+import 'package:skillup/core/utils/progress_calculator.dart';
+import '../../explore/services/firestore_roadmap_service.dart';
 import '../../../domain/entities/user.dart';
 import '../../../domain/entities/user_roadmap.dart';
 import '../services/firestore_user_service.dart';
@@ -18,6 +19,7 @@ import 'dart:async';
 import '../widgets/profile_header.dart';
 import '../widgets/profile_info_row.dart';
 import '../widgets/privacy_chip.dart';
+import 'enrolled_roadmap_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -28,7 +30,7 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   final _userService = FirestoreUserService();
-  final _roadmapService = MockRoadmapService();
+  final _roadmapService = FirestoreRoadmapService();
 
   User? _user;
   List<UserRoadmap> _userRoadmaps = [];
@@ -101,7 +103,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   int get _activeCount => _userRoadmaps.length;
   int get _completedCount =>
-      _userRoadmaps.where((r) => r.progress >= 1.0).length;
+      _userRoadmaps.where((ur) {
+        final rm = _findRoadmap(ur.roadmapId);
+        final pct = ProgressCalculator.getProgressFromUserRoadmap(
+          userRoadmap: ur,
+          roadmap: rm,
+        );
+        return pct >= 1.0;
+      }).length;
+
 
   // Helper: find roadmap by id in _allRoadmaps
   Roadmap? _findRoadmap(String id) {
@@ -376,7 +386,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   final ur = _userRoadmaps.firstWhere(
                     (u) => u.roadmapId == r.id,
                   );
-                  final progress = (ur.progress).clamp(0.0, 1.0);
+                  final progress = ProgressCalculator.getProgressFromUserRoadmap(
+                    userRoadmap: ur,
+                    roadmap: r,
+                  );
                   return Card(
                     child: ListTile(
                       leading: CircleAvatar(
@@ -389,18 +402,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           const SizedBox(height: 6),
                           LinearProgressIndicator(value: progress),
                           const SizedBox(height: 6),
-                          Text('${r.tags.length} stages'),
+                          // Use roadmap.totalStages when available; otherwise derive from sample modules
+                          Text('${_deriveTotalStages(r)} stages'),
                         ],
                       ),
                       trailing: IconButton(
                         icon: const Icon(Icons.remove_circle_outline),
                         onPressed: () => _removeRoadmapFromProfile(r.id),
                       ),
-                      onTap: () => Navigator.pushNamed(
-                        context,
-                        '/roadmap-detail',
-                        arguments: r,
-                      ),
+                      onTap: () async {
+                        await Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => EnrolledRoadmapScreen(
+                              roadmap: r,
+                              userRoadmap: ur,
+                            ),
+                          ),
+                        );
+                        // Reload user roadmaps to pick up any persisted progress
+                        await _load();
+                      },
                     ),
                   );
                 },
@@ -496,5 +517,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
     ];
     return '${months[date.month - 1]} ${date.day}, ${date.year}';
+  }
+
+  // Derive a roadmap's total stages from roadmap metadata
+  int _deriveTotalStages(Roadmap r) {
+    return r.totalStages;
   }
 }

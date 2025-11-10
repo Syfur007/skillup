@@ -5,10 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:skillup/core/navigation/navigation.dart';
 import 'package:skillup/domain/entities/roadmap.dart';
 import 'package:skillup/domain/entities/module.dart';
-// import '../services/firestore_roadmap_service.dart';
-// import '../services/firestore_module_service.dart';
-import '../services/mock_roadmap_service.dart';
-import '../services/mock_module_service.dart';
+import '../services/firestore_roadmap_service.dart';
+import '../services/firestore_module_service.dart';
 import '../widgets/roadmap_card.dart';
 import '../widgets/module_card.dart';
 
@@ -20,13 +18,9 @@ class ExploreScreen extends StatefulWidget {
 }
 
 class _ExploreScreenState extends State<ExploreScreen> {
-  // Use mock services for testing
-  final _roadmapService = MockRoadmapService();
-  final _moduleService = MockModuleService();
-
-  // For production, use Firestore services:
-  // final _roadmapService = FirestoreRoadmapService();
-  // final _moduleService = FirestoreModuleService();
+  // Use Firestore services
+  final _roadmapService = FirestoreRoadmapService();
+  final _moduleService = FirestoreModuleService();
 
   List<Roadmap>? _roadmaps;
   List<Module>? _modules;

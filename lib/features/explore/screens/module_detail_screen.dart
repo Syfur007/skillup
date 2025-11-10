@@ -1,22 +1,87 @@
 import 'package:flutter/material.dart';
-import 'package:skillup/features/explore/providers/sample_roadmap_data.dart';
+import 'package:skillup/domain/entities/module.dart';
+import 'package:skillup/features/explore/services/firestore_module_service.dart';
 import 'package:skillup/features/explore/widgets/roadmap_stage_expanded.dart';
 
-class ModuleScreen extends StatelessWidget {
+class ModuleScreen extends StatefulWidget {
   final String moduleId;
 
   const ModuleScreen({super.key, required this.moduleId});
 
   @override
-  Widget build(BuildContext context) {
-    final module = SampleRoadmapData.getSampleModuleById(moduleId);
+  State<ModuleScreen> createState() => _ModuleScreenState();
+}
 
-    if (module == null) {
+class _ModuleScreenState extends State<ModuleScreen> {
+  final _moduleService = FirestoreModuleService();
+  Module? _module;
+  bool _loading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadModule();
+  }
+
+  Future<void> _loadModule() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    try {
+      final module = await _moduleService.getModuleById(widget.moduleId);
+      if (!mounted) return;
+      setState(() {
+        _module = module;
+        _loading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = 'Failed to load module';
+        _loading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) {
       return Scaffold(
         appBar: AppBar(title: const Text('Module')),
-        body: Center(child: Text('Module not found: $moduleId')),
+        body: const Center(child: CircularProgressIndicator()),
       );
     }
+
+    if (_error != null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Module')),
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(_error!),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: _loadModule,
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (_module == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Module')),
+        body: Center(child: Text('Module not found: ${widget.moduleId}')),
+      );
+    }
+
+    final module = _module!;
 
     final totalTasks = module.stages.fold<int>(0, (prev, s) => prev + s.tasks.length);
     final totalResources = module.stages.fold<int>(0, (prev, s) => prev + s.resources.length);

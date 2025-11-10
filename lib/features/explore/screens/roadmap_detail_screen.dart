@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:skillup/domain/entities/roadmap.dart';
+import 'package:skillup/domain/entities/module.dart';
+import 'package:skillup/core/utils/progress_calculator.dart';
 import '../widgets/roadmap_detail_header.dart';
 import '../widgets/roadmap_stage_expanded.dart';
 import '../../profile/services/firestore_user_service.dart';
-import '../providers/sample_roadmap_data.dart';
+import '../services/firestore_module_service.dart';
 import 'package:skillup/core/navigation/navigation.dart';
+import 'package:skillup/domain/entities/user_roadmap.dart';
+import 'package:skillup/features/profile/screens/enrolled_roadmap_screen.dart';
 
 class RoadmapDetailScreen extends StatefulWidget {
   final Roadmap roadmap;
@@ -18,15 +22,21 @@ class RoadmapDetailScreen extends StatefulWidget {
 class _RoadmapDetailScreenState extends State<RoadmapDetailScreen>
     with SingleTickerProviderStateMixin {
   final _userService = FirestoreUserService();
+  final _moduleService = FirestoreModuleService();
   late TabController _tabController;
   bool _isLoading = false;
   bool _isInProfile = false;
+  UserRoadmap? _userRoadmap;
+  double _userProgress = 0.0;
+  Map<String, Module> _modules = {};
+  bool _loadingModules = false;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _checkRoadmapStatus();
+    _loadModules();
   }
 
   @override
@@ -35,11 +45,76 @@ class _RoadmapDetailScreenState extends State<RoadmapDetailScreen>
     super.dispose();
   }
 
-  Future<void> _checkRoadmapStatus() async {
-    final isInProfile = await _userService.hasRoadmap(widget.roadmap.id);
-    if (mounted) {
-      setState(() => _isInProfile = isInProfile);
+  Future<void> _loadModules() async {
+    setState(() => _loadingModules = true);
+    try {
+      final modules = <String, Module>{};
+      for (final moduleId in widget.roadmap.moduleIds) {
+        final module = await _moduleService.getModuleById(moduleId);
+        if (module != null) {
+          modules[moduleId] = module;
+        }
+      }
+      if (!mounted) return;
+      setState(() {
+        _modules = modules;
+        _loadingModules = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _loadingModules = false);
     }
+  }
+
+  Future<void> _checkRoadmapStatus() async {
+    // Load the user's roadmap entries to determine enrollment and progress.
+    try {
+      final list = await _userService.getUserRoadmaps();
+      UserRoadmap? found;
+      for (final u in list) {
+        if (u.roadmapId == widget.roadmap.id) {
+          found = u;
+          break;
+        }
+      }
+      if (!mounted) return;
+      setState(() {
+        _userRoadmap = found;
+        _isInProfile = found != null;
+        _userProgress = found != null ? _normalizeProgress(found) : 0.0;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _isInProfile = false;
+        _userRoadmap = null;
+        _userProgress = 0.0;
+      });
+    }
+  }
+
+  double _normalizeProgress(UserRoadmap ur) {
+    // Try using stored progress first
+    final raw = ur.progress;
+    if (raw > 0.0) {
+      return ProgressCalculator.normalizeProgress(raw);
+    }
+
+    // Fallback: compute from completedSteps
+    var total = widget.roadmap.totalTasks;
+    if (total <= 0 && _modules.isNotEmpty) {
+      // Calculate total from loaded modules
+      try {
+        total = _modules.values.fold<int>(0, (sum, m) {
+          return sum + m.stages.fold<int>(0, (sSum, st) => sSum + st.tasks.length);
+        });
+      } catch (_) {
+        total = 0;
+      }
+    }
+    if (total <= 0) return 0.0;
+    final completed = ur.completedSteps.values.where((v) => v == true).length;
+    return (completed / total).clamp(0.0, 1.0);
   }
 
   Future<void> _toggleRoadmap() async {
@@ -61,6 +136,8 @@ class _RoadmapDetailScreenState extends State<RoadmapDetailScreen>
             ),
           ),
         );
+        // Refresh cached userRoadmap and progress
+        await _checkRoadmapStatus();
       }
     } catch (e) {
       if (mounted) {
@@ -120,6 +197,7 @@ class _RoadmapDetailScreenState extends State<RoadmapDetailScreen>
               averageRating: widget.roadmap.averageRating,
               enrolledCount: widget.roadmap.enrolledCount,
               tags: widget.roadmap.tags,
+              progress: _isInProfile ? _userProgress : null,
             ),
           ),
           SliverAppBar(
@@ -145,10 +223,18 @@ class _RoadmapDetailScreenState extends State<RoadmapDetailScreen>
       ),
       floatingActionButton: _isInProfile
           ? FloatingActionButton.extended(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Continue learning...')),
+              onPressed: () async {
+                // Navigate to enrolled roadmap screen with the user's roadmap entry
+                await Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => EnrolledRoadmapScreen(
+                      roadmap: widget.roadmap,
+                      userRoadmap: _userRoadmap,
+                    ),
+                  ),
                 );
+                // Reload status when returning
+                await _checkRoadmapStatus();
               },
               label: const Text('Continue'),
               icon: const Icon(Icons.arrow_forward),
@@ -320,13 +406,17 @@ class _RoadmapDetailScreenState extends State<RoadmapDetailScreen>
     }
 
     // Render simple module placeholders using moduleIds from domain model
+    if (_loadingModules) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(vertical: 16),
       child: Column(
         children: [
           ...List.generate(widget.roadmap.moduleIds.length, (index) {
             final moduleId = widget.roadmap.moduleIds[index];
-            final module = SampleRoadmapData.getSampleModuleById(moduleId);
+            final module = _modules[moduleId];
             if (module == null) {
               return Card(
                 margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
