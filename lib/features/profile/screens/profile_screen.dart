@@ -3,7 +3,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:skillup/domain/entities/roadmap.dart';
-import '../../explore/services/mock_roadmap_service.dart';
+import '../../explore/services/firestore_roadmap_service.dart';
 import '../../../domain/entities/user.dart';
 import '../../../domain/entities/user_roadmap.dart';
 import '../services/firestore_user_service.dart';
@@ -19,7 +19,6 @@ import '../widgets/profile_header.dart';
 import '../widgets/profile_info_row.dart';
 import '../widgets/privacy_chip.dart';
 import 'enrolled_roadmap_screen.dart';
-import '../../explore/providers/sample_roadmap_data.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -30,7 +29,7 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   final _userService = FirestoreUserService();
-  final _roadmapService = MockRoadmapService();
+  final _roadmapService = FirestoreRoadmapService();
 
   User? _user;
   List<UserRoadmap> _userRoadmaps = [];
@@ -125,24 +124,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
       return raw.clamp(0.0, 1.0);
     }
 
-    // Fallback: compute from completedSteps. Prefer roadmap.totalTasks if present,
-    // otherwise attempt to sum tasks from sample modules referenced by the roadmap.
+    // Fallback: compute from completedSteps. Prefer roadmap.totalTasks if present.
     if (roadmap == null) return 0.0;
 
     int totalTasks = roadmap.totalTasks;
-    if (totalTasks <= 0) {
-      // Try to derive totalTasks by summing tasks from referenced modules (sample data)
-      try {
-        totalTasks = roadmap.moduleIds.fold<int>(0, (sum, mid) {
-          final m = SampleRoadmapData.getSampleModuleById(mid);
-          if (m == null) return sum;
-          final moduleTasks = m.stages.fold<int>(0, (sSum, st) => sSum + st.tasks.length);
-          return sum + moduleTasks;
-        });
-      } catch (_) {
-        totalTasks = 0;
-      }
-    }
+    // If totalTasks is not set in the roadmap, we can't calculate progress accurately
+    // In the future, you could fetch modules from Firestore here if needed
 
     if (totalTasks <= 0) return 0.0;
 
@@ -553,17 +540,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return '${months[date.month - 1]} ${date.day}, ${date.year}';
   }
 
-  // Derive a roadmap's total stages (fallback to sample modules if roadmap metadata is missing)
+  // Derive a roadmap's total stages from roadmap metadata
   int _deriveTotalStages(Roadmap r) {
-    if (r.totalStages > 0) return r.totalStages;
-    try {
-      return r.moduleIds.fold<int>(0, (sum, mid) {
-        final m = SampleRoadmapData.getSampleModuleById(mid);
-        if (m == null) return sum;
-        return sum + m.stages.length;
-      });
-    } catch (_) {
-      return 0;
-    }
+    return r.totalStages;
   }
 }

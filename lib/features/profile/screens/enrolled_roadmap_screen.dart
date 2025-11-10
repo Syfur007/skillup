@@ -2,15 +2,15 @@
 
 import 'package:flutter/material.dart';
 import 'package:skillup/domain/entities/roadmap.dart';
+import 'package:skillup/domain/entities/module.dart';
 import 'package:skillup/domain/entities/user_roadmap.dart';
 import 'package:skillup/domain/entities/user_roadmap_progress.dart';
-import 'package:skillup/features/explore/providers/sample_roadmap_data.dart';
+import 'package:skillup/features/explore/services/firestore_module_service.dart';
 import 'module_detail_screen.dart';
 import '../services/firestore_user_service.dart';
 
 /// Screen that shows detailed view of a roadmap the user has enrolled in.
-/// Uses mock data for display and includes helper functions to compute
-/// progress and derived metrics.
+/// Fetches module data from Firestore and displays progress information.
 class EnrolledRoadmapScreen extends StatefulWidget {
   final Roadmap roadmap;
   final UserRoadmap? userRoadmap;
@@ -22,22 +22,48 @@ class EnrolledRoadmapScreen extends StatefulWidget {
 }
 
 class _EnrolledRoadmapScreenState extends State<EnrolledRoadmapScreen> {
+  final _moduleService = FirestoreModuleService();
   late UserRoadmapProgress _progress;
+  List<Module> _modules = [];
+  bool _loadingModules = true;
 
   @override
   void initState() {
     super.initState();
-    _progress = _buildMockProgress();
+    _loadModules();
+  }
+
+  Future<void> _loadModules() async {
+    setState(() => _loadingModules = true);
+    try {
+      final modules = <Module>[];
+      for (final moduleId in widget.roadmap.moduleIds) {
+        final module = await _moduleService.getModuleById(moduleId);
+        if (module != null) {
+          modules.add(module);
+        }
+      }
+      if (!mounted) return;
+      setState(() {
+        _modules = modules;
+        _loadingModules = false;
+        _progress = _buildMockProgress();
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _loadingModules = false;
+        _progress = _buildMockProgress();
+      });
+    }
   }
 
   // Mock: build a fake UserRoadmapProgress for demo purposes. In real app
   // this would be loaded from a repository/service.
   UserRoadmapProgress _buildMockProgress() {
     final roadmap = widget.roadmap;
-    // Use sample modules to assemble progress
-    final modules = SampleRoadmapData.getSampleModulesList()
-        .where((m) => roadmap.moduleIds.contains(m.id))
-        .toList();
+    // Use loaded modules to assemble progress
+    final modules = _modules;
 
     final moduleProgress = <String, ModuleProgress>{};
     for (var m in modules) {
@@ -164,9 +190,10 @@ class _EnrolledRoadmapScreenState extends State<EnrolledRoadmapScreen> {
       separatorBuilder: (_, _) => const SizedBox(height: 8),
       itemBuilder: (context, idx) {
         final m = modules[idx];
+        final moduleData = _modules.firstWhere((mod) => mod.id == m.moduleId, orElse: () => Module(id: m.moduleId, title: m.moduleId, description: '', createdBy: ''));
         return Card(
           child: ListTile(
-            title: Text(SampleRoadmapData.getSampleModuleById(m.moduleId)?.title ?? m.moduleId),
+            title: Text(moduleData.title),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -232,8 +259,12 @@ class _EnrolledRoadmapScreenState extends State<EnrolledRoadmapScreen> {
       appBar: AppBar(
         title: Text(widget.roadmap.title),
       ),
-      body: RefreshIndicator(
-        onRefresh: () async {},
+      body: _loadingModules
+          ? const Center(child: CircularProgressIndicator())
+          : RefreshIndicator(
+        onRefresh: () async {
+          await _loadModules();
+        },
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.all(16),

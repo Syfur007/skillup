@@ -5,8 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:skillup/core/navigation/navigation_extensions.dart';
 import 'package:skillup/core/navigation/route_names.dart';
 import 'package:skillup/domain/entities/roadmap.dart';
-import '../../explore/providers/sample_roadmap_data.dart';
-import '../../explore/services/mock_roadmap_service.dart';
+import '../../explore/services/firestore_roadmap_service.dart';
+import '../../profile/services/firestore_user_service.dart';
+import '../../../domain/entities/user_roadmap.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -16,20 +17,29 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  final _service = MockRoadmapService();
+  final _roadmapService = FirestoreRoadmapService();
+  final _userService = FirestoreUserService();
   late Future<List<Roadmap>> _roadmapsFuture;
+  List<UserRoadmap> _userRoadmaps = [];
 
   @override
   void initState() {
     super.initState();
-    _roadmapsFuture = _service.getRoadmaps();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    _roadmapsFuture = _roadmapService.getRoadmaps();
+    try {
+      _userRoadmaps = await _userService.getUserRoadmaps();
+      if (mounted) setState(() {});
+    } catch (e) {
+      _userRoadmaps = [];
+    }
   }
 
   Future<void> _refresh() async {
-    setState(() {
-      _roadmapsFuture = _service.getRoadmaps();
-    });
-    await _roadmapsFuture;
+    await _loadData();
   }
 
   Widget _buildSummaryCard(
@@ -69,8 +79,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _roadmapTile(Roadmap r) {
-    // Simple progress placeholder (random-ish based on id hash)
-    final progress = (r.id.hashCode % 100) / 100;
+    // Find user's progress for this roadmap
+    final userRoadmap = _userRoadmaps.where((ur) => ur.roadmapId == r.id).firstOrNull;
+    final progress = userRoadmap != null ? _normalizeProgress(userRoadmap.progress) : 0.0;
 
     return Card(
       elevation: 2,
@@ -230,6 +241,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  double _normalizeProgress(double raw) {
+    if (raw > 0.0) {
+      if (raw > 1.0) {
+        // Treat values > 1.0 as percentage (0-100)
+        return (raw.clamp(0.0, 100.0) / 100.0).clamp(0.0, 1.0);
+      }
+      // Already a fraction (0.0-1.0)
+      return raw.clamp(0.0, 1.0);
+    }
+    return 0.0;
+  }
+
   Color _getDifficultyColor(RoadmapDifficulty difficulty) {
     return {
       RoadmapDifficulty.beginner: Colors.green,
@@ -298,7 +321,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               const SizedBox(height: 12),
 
               FutureBuilder<List<Roadmap>>(
-                future: Future.value(SampleRoadmapData.getSampleRoadmapList()),
+                future: _roadmapsFuture,
                 builder: (context, snap) {
                   if (snap.connectionState == ConnectionState.waiting) {
                     return const Padding(

@@ -1,8 +1,9 @@
 // filepath: lib/features/profile/screens/module_detail_screen.dart
 
 import 'package:flutter/material.dart';
+import 'package:skillup/domain/entities/module.dart';
 import 'package:skillup/domain/entities/user_roadmap_progress.dart';
-import 'package:skillup/features/explore/providers/sample_roadmap_data.dart';
+import 'package:skillup/features/explore/services/firestore_module_service.dart';
 
 typedef UpdateTaskCallback = Future<UserRoadmapProgress> Function(
   String moduleId,
@@ -23,8 +24,11 @@ class ModuleDetailScreen extends StatefulWidget {
 }
 
 class _ModuleDetailScreenState extends State<ModuleDetailScreen> {
+  final _moduleService = FirestoreModuleService();
   late ModuleProgress _moduleProgress;
   UserRoadmapProgress? _latestProgress;
+  Module? _module;
+  bool _loadingModule = true;
 
   @override
   void initState() {
@@ -33,6 +37,22 @@ class _ModuleDetailScreenState extends State<ModuleDetailScreen> {
     _moduleProgress = widget.moduleProgress.copyWith(
       stageProgress: Map<String, StageProgress>.from(widget.moduleProgress.stageProgress),
     );
+    _loadModule();
+  }
+
+  Future<void> _loadModule() async {
+    setState(() => _loadingModule = true);
+    try {
+      final module = await _moduleService.getModuleById(widget.moduleId);
+      if (!mounted) return;
+      setState(() {
+        _module = module;
+        _loadingModule = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _loadingModule = false);
+    }
   }
 
   Future<void> _toggleTask(String stageId, String taskId, bool newValue) async {
@@ -90,7 +110,14 @@ class _ModuleDetailScreenState extends State<ModuleDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final module = SampleRoadmapData.getSampleModuleById(widget.moduleId);
+    if (_loadingModule) {
+      return Scaffold(
+        appBar: AppBar(title: Text(widget.moduleId)),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    final module = _module;
     final stages = module?.stages ?? [];
 
     return Scaffold(
@@ -106,7 +133,9 @@ class _ModuleDetailScreenState extends State<ModuleDetailScreen> {
           ),
         ],
       ),
-      body: ListView.separated(
+      body: stages.isEmpty
+          ? const Center(child: Text('No stages available'))
+          : ListView.separated(
         padding: const EdgeInsets.all(16),
         itemBuilder: (context, idx) {
           final stage = stages[idx];

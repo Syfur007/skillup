@@ -10,6 +10,7 @@ class RoadmapDetailHeader extends StatelessWidget {
   final double averageRating;
   final int enrolledCount;
   final List<String> tags;
+  final double? progress; // optional progress 0.0..1.0 to show slim progress bar
 
   const RoadmapDetailHeader({
     super.key,
@@ -21,6 +22,7 @@ class RoadmapDetailHeader extends StatelessWidget {
     required this.averageRating,
     required this.enrolledCount,
     this.tags = const [],
+    this.progress,
   });
 
   Color _getDifficultyColor(RoadmapDifficulty difficulty) {
@@ -33,7 +35,7 @@ class RoadmapDetailHeader extends StatelessWidget {
         return Colors.red;
       case RoadmapDifficulty.expert:
         return Colors.deepPurple;
-      }
+    }
   }
 
   @override
@@ -119,6 +121,34 @@ class RoadmapDetailHeader extends StatelessWidget {
               ),
             ],
           ),
+
+          // Progress bar (optional) - display above tags when provided with numeric label
+          if (progress != null) ...[
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: SizedBox(
+                    height: 8,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: progress!.clamp(0.0, 1.0),
+                        minHeight: 8,
+                        backgroundColor: Colors.white.withValues(alpha: 0.12),
+                        valueColor: AlwaysStoppedAnimation<Color>(Theme.of(context).colorScheme.secondary),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  '${(progress! * 100).round()}%',
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
+          ],
 
           // Tags
           if (tags.isNotEmpty) ...[
