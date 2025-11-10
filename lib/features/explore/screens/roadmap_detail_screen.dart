@@ -80,6 +80,73 @@ class _RoadmapDetailScreenState extends State<RoadmapDetailScreen>
   }
 
   @override
+  State<RoadmapDetailScreen> createState() => _RoadmapDetailScreenState();
+}
+
+class _RoadmapDetailScreenState extends State<RoadmapDetailScreen>
+    with SingleTickerProviderStateMixin {
+  final _userService = FirestoreUserService();
+  late TabController _tabController;
+  bool _isLoading = false;
+  bool _isInProfile = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+    _checkRoadmapStatus();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _checkRoadmapStatus() async {
+    final isInProfile = await _userService.hasRoadmap(widget.roadmap.id);
+    if (mounted) {
+      setState(() => _isInProfile = isInProfile);
+    }
+  }
+
+  Future<void> _toggleRoadmap() async {
+    setState(() => _isLoading = true);
+    try {
+      if (_isInProfile) {
+        await _userService.removeRoadmap(widget.roadmap.id);
+      } else {
+        await _userService.addRoadmap(widget.roadmap.id);
+      }
+      if (mounted) {
+        setState(() => _isInProfile = !_isInProfile);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              _isInProfile
+                  ? 'Added to your profile'
+                  : 'Removed from your profile',
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
