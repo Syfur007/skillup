@@ -18,6 +18,7 @@ import 'dart:async';
 import '../widgets/profile_header.dart';
 import '../widgets/profile_info_row.dart';
 import '../widgets/privacy_chip.dart';
+import 'enrolled_roadmap_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -396,10 +397,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         icon: const Icon(Icons.remove_circle_outline),
                         onPressed: () => _removeRoadmapFromProfile(r.id),
                       ),
-                      onTap: () => Navigator.pushNamed(
-                        context,
-                        '/roadmap-detail',
-                        arguments: r,
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => EnrolledRoadmapScreen(
+                            roadmap: r,
+                            userRoadmap: ur,
+                          ),
+                        ),
                       ),
                     ),
                   );
