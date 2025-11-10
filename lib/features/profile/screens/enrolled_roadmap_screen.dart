@@ -5,19 +5,35 @@ import 'package:skillup/domain/entities/roadmap.dart';
 import 'package:skillup/domain/entities/user_roadmap.dart';
 import 'package:skillup/domain/entities/user_roadmap_progress.dart';
 import 'package:skillup/features/explore/providers/sample_roadmap_data.dart';
+import 'module_detail_screen.dart';
+import '../services/firestore_user_service.dart';
 
 /// Screen that shows detailed view of a roadmap the user has enrolled in.
 /// Uses mock data for display and includes helper functions to compute
 /// progress and derived metrics.
-class EnrolledRoadmapScreen extends StatelessWidget {
+class EnrolledRoadmapScreen extends StatefulWidget {
   final Roadmap roadmap;
   final UserRoadmap? userRoadmap;
 
   const EnrolledRoadmapScreen({super.key, required this.roadmap, this.userRoadmap});
 
+  @override
+  State<EnrolledRoadmapScreen> createState() => _EnrolledRoadmapScreenState();
+}
+
+class _EnrolledRoadmapScreenState extends State<EnrolledRoadmapScreen> {
+  late UserRoadmapProgress _progress;
+
+  @override
+  void initState() {
+    super.initState();
+    _progress = _buildMockProgress();
+  }
+
   // Mock: build a fake UserRoadmapProgress for demo purposes. In real app
   // this would be loaded from a repository/service.
   UserRoadmapProgress _buildMockProgress() {
+    final roadmap = widget.roadmap;
     // Use sample modules to assemble progress
     final modules = SampleRoadmapData.getSampleModulesList()
         .where((m) => roadmap.moduleIds.contains(m.id))
@@ -107,7 +123,8 @@ class EnrolledRoadmapScreen extends StatelessWidget {
     return '${mins}m';
   }
 
-  Widget _buildOverview(BuildContext context, UserRoadmapProgress progress) {
+  Widget _buildOverview(BuildContext context) {
+    final progress = _progress;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -122,7 +139,7 @@ class EnrolledRoadmapScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(roadmap.title, style: Theme.of(context).textTheme.titleMedium),
+                      Text(widget.roadmap.title, style: Theme.of(context).textTheme.titleMedium),
                       const SizedBox(height: 6),
                       LinearProgressIndicator(value: (progress.progressPercentage / 100.0).clamp(0.0, 1.0)),
                       const SizedBox(height: 6),
@@ -138,8 +155,8 @@ class EnrolledRoadmapScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildModuleList(BuildContext context, UserRoadmapProgress progress) {
-    final modules = progress.moduleProgress.values.toList();
+  Widget _buildModuleList(BuildContext context) {
+    final modules = _progress.moduleProgress.values.toList();
     return ListView.separated(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -160,7 +177,49 @@ class EnrolledRoadmapScreen extends StatelessWidget {
               ],
             ),
             trailing: Text(_formatPercent(m.progressPercentage)),
-            onTap: () {},
+            onTap: () async {
+              // Open module detail and await updated progress
+              final updated = await Navigator.of(context).push<UserRoadmapProgress>(
+                MaterialPageRoute(
+                  builder: (_) => ModuleDetailScreen(
+                    moduleId: m.moduleId,
+                    moduleProgress: m,
+                    updateTaskCallback: (String moduleId, String stageId, String taskId, bool isCompleted) async {
+                      // Use _progress.updateTaskStatus to compute new progress and return it
+                      final newProgress = _progress.updateTaskStatus(
+                        moduleId: moduleId,
+                        stageId: stageId,
+                        taskId: taskId,
+                        isCompleted: isCompleted,
+                        timeSpentMinutes: isCompleted ? 5 : 0,
+                      );
+                      // Persist the updated progress so other screens see the change.
+                      try {
+                        await FirestoreUserService().saveUserRoadmapProgress(newProgress);
+                      } catch (_) {
+                        // ignore persistence errors in mock/demo mode
+                      }
+                      if (!mounted) return newProgress;
+                      setState(() {
+                        _progress = newProgress;
+                      });
+                      return newProgress;
+                    },
+                  ),
+                ),
+              );
+
+              if (updated != null) {
+                if (!mounted) return; // safety
+                setState(() {
+                  _progress = updated;
+                });
+                // try to persist final updated state
+                try {
+                  await FirestoreUserService().saveUserRoadmapProgress(updated);
+                } catch (_) {}
+              }
+            },
           ),
         );
       },
@@ -169,11 +228,9 @@ class EnrolledRoadmapScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final mock = _buildMockProgress();
-
     return Scaffold(
       appBar: AppBar(
-        title: Text(roadmap.title),
+        title: Text(widget.roadmap.title),
       ),
       body: RefreshIndicator(
         onRefresh: () async {},
@@ -183,11 +240,11 @@ class EnrolledRoadmapScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildOverview(context, mock),
+              _buildOverview(context),
               const SizedBox(height: 12),
               Text('Modules', style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 8),
-              _buildModuleList(context, mock),
+              _buildModuleList(context),
             ],
           ),
         ),

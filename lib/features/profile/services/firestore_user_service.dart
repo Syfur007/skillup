@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb;
 import '../../../domain/entities/user.dart';
 import '../../../domain/entities/user_roadmap.dart';
+import '../../../domain/entities/user_roadmap_progress.dart';
 
 class FirestoreUserService {
   final FirebaseFirestore _firestore;
@@ -106,5 +107,42 @@ class FirestoreUserService {
   Future<bool> hasRoadmap(String roadmapId) async {
     final list = await getUserRoadmaps();
     return list.any((r) => r.roadmapId == roadmapId);
+  }
+
+  Future<void> saveUserRoadmapProgress(UserRoadmapProgress progress) async {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) throw Exception('Not signed in');
+    final ref = _firestore.collection('users').doc(uid);
+    final doc = await ref.get();
+    final data = doc.data() ?? {};
+    final list = List<Map<String, dynamic>>.from(
+      (data['userRoadmaps'] as List<dynamic>?) ?? [],
+    );
+
+    // Flatten completed tasks into a simple map of taskId -> bool
+    final completedSteps = <String, bool>{};
+    for (final m in progress.moduleProgress.values) {
+      for (final s in m.stageProgress.values) {
+        for (final t in s.taskProgress.values) {
+          completedSteps[t.taskId] = t.isCompleted;
+        }
+      }
+    }
+
+    final userRoadmapJson = UserRoadmap(
+      roadmapId: progress.roadmapId,
+      startedAt: progress.startedAt,
+      progress: progress.progressPercentage,
+      completedSteps: completedSteps,
+    ).toJson();
+
+    final idx = list.indexWhere((e) => (e['roadmapId'] as String) == progress.roadmapId);
+    if (idx >= 0) {
+      list[idx] = userRoadmapJson;
+    } else {
+      list.add(userRoadmapJson);
+    }
+
+    await ref.set({'userRoadmaps': list}, SetOptions(merge: true));
   }
 }

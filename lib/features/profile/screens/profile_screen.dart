@@ -19,6 +19,7 @@ import '../widgets/profile_header.dart';
 import '../widgets/profile_info_row.dart';
 import '../widgets/privacy_chip.dart';
 import 'enrolled_roadmap_screen.dart';
+import '../../explore/providers/sample_roadmap_data.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -102,7 +103,52 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   int get _activeCount => _userRoadmaps.length;
   int get _completedCount =>
-      _userRoadmaps.where((r) => r.progress >= 1.0).length;
+      _userRoadmaps.where((ur) {
+        final rm = _findRoadmap(ur.roadmapId);
+        final pct = _computeUserRoadmapProgress(ur, rm);
+        return pct >= 1.0;
+      }).length;
+
+  // Compute a user's roadmap progress between 0.0 and 1.0.
+  // Priority: if UserRoadmap.progress is provided (> 0), use it. Otherwise,
+  // fall back to completedSteps count divided by the roadmap.totalTasks.
+  double _computeUserRoadmapProgress(UserRoadmap ur, Roadmap? roadmap) {
+    // Normalize stored progress values.
+    // Some parts of the app may store progress as 0-1 (fraction) or 0-100 (percent).
+    final raw = ur.progress;
+    if (raw > 0.0) {
+      if (raw > 1.0) {
+        // Treat values in (1, 100+] as percentage; clamp to 100
+        final pct = raw.clamp(0.0, 100.0);
+        return (pct / 100.0).clamp(0.0, 1.0);
+      }
+      return raw.clamp(0.0, 1.0);
+    }
+
+    // Fallback: compute from completedSteps. Prefer roadmap.totalTasks if present,
+    // otherwise attempt to sum tasks from sample modules referenced by the roadmap.
+    if (roadmap == null) return 0.0;
+
+    int totalTasks = roadmap.totalTasks;
+    if (totalTasks <= 0) {
+      // Try to derive totalTasks by summing tasks from referenced modules (sample data)
+      try {
+        totalTasks = roadmap.moduleIds.fold<int>(0, (sum, mid) {
+          final m = SampleRoadmapData.getSampleModuleById(mid);
+          if (m == null) return sum;
+          final moduleTasks = m.stages.fold<int>(0, (sSum, st) => sSum + st.tasks.length);
+          return sum + moduleTasks;
+        });
+      } catch (_) {
+        totalTasks = 0;
+      }
+    }
+
+    if (totalTasks <= 0) return 0.0;
+
+    final completedCount = ur.completedSteps.values.where((v) => v == true).length;
+    return (completedCount / totalTasks).clamp(0.0, 1.0);
+  }
 
   // Helper: find roadmap by id in _allRoadmaps
   Roadmap? _findRoadmap(String id) {
@@ -377,7 +423,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   final ur = _userRoadmaps.firstWhere(
                     (u) => u.roadmapId == r.id,
                   );
-                  final progress = (ur.progress).clamp(0.0, 1.0);
+                  final progress = _computeUserRoadmapProgress(ur, r);
                   return Card(
                     child: ListTile(
                       leading: CircleAvatar(
@@ -390,21 +436,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           const SizedBox(height: 6),
                           LinearProgressIndicator(value: progress),
                           const SizedBox(height: 6),
-                          Text('${r.tags.length} stages'),
+                          // Use roadmap.totalStages when available; otherwise derive from sample modules
+                          Text('${_deriveTotalStages(r)} stages'),
                         ],
                       ),
                       trailing: IconButton(
                         icon: const Icon(Icons.remove_circle_outline),
                         onPressed: () => _removeRoadmapFromProfile(r.id),
                       ),
-                      onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => EnrolledRoadmapScreen(
-                            roadmap: r,
-                            userRoadmap: ur,
+                      onTap: () async {
+                        await Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => EnrolledRoadmapScreen(
+                              roadmap: r,
+                              userRoadmap: ur,
+                            ),
                           ),
-                        ),
-                      ),
+                        );
+                        // Reload user roadmaps to pick up any persisted progress
+                        await _load();
+                      },
                     ),
                   );
                 },
@@ -500,5 +551,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
     ];
     return '${months[date.month - 1]} ${date.day}, ${date.year}';
+  }
+
+  // Derive a roadmap's total stages (fallback to sample modules if roadmap metadata is missing)
+  int _deriveTotalStages(Roadmap r) {
+    if (r.totalStages > 0) return r.totalStages;
+    try {
+      return r.moduleIds.fold<int>(0, (sum, mid) {
+        final m = SampleRoadmapData.getSampleModuleById(mid);
+        if (m == null) return sum;
+        return sum + m.stages.length;
+      });
+    } catch (_) {
+      return 0;
+    }
   }
 }
