@@ -5,10 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:skillup/core/navigation/route_names.dart';
 
-import 'package:skillup/features/explore/screens/roadmap_list_screen.dart';
+import 'package:skillup/features/explore/screens/explore_screen.dart';
 import 'package:skillup/features/explore/screens/roadmap_detail_screen.dart';
 import 'package:skillup/features/explore/screens/create_roadmap_screen.dart';
-import 'package:skillup/features/explore/screens/module_screen.dart';
+import 'package:skillup/features/explore/screens/module_detail_screen.dart';
 import 'package:skillup/domain/entities/roadmap.dart';
 
 /// Explore feature routes
