@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/roadmap.dart';
+import 'package:skillup/domain/entities/roadmap.dart';
 
 class FirestoreRoadmapService {
   final FirebaseFirestore _firestore;
@@ -10,7 +10,10 @@ class FirestoreRoadmapService {
   Future<List<Roadmap>> getRoadmaps() async {
     final snap = await _firestore.collection('roadmaps').get();
     return snap.docs.map((d) {
-      return Roadmap.fromJson(d.id, d.data());
+      // Domain Roadmap.fromJson expects a map that includes the id
+      final data = Map<String, dynamic>.from(d.data());
+      data['id'] = d.id;
+      return Roadmap.fromJson(data);
     }).toList();
   }
 

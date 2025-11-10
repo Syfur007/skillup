@@ -2,14 +2,13 @@
 // Small UI component that displays a roadmap summary used in lists/grids.
 
 import 'package:flutter/material.dart';
-import '../models/roadmap.dart';
+import 'package:skillup/domain/entities/roadmap.dart';
 
 class RoadmapCard extends StatelessWidget {
   final Roadmap roadmap;
   final VoidCallback onTap;
 
-  const RoadmapCard({Key? key, required this.roadmap, required this.onTap})
-    : super(key: key);
+  const RoadmapCard({super.key, required this.roadmap, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -45,7 +44,7 @@ class RoadmapCard extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Chip(
-                label: Text(roadmap.category),
+                label: Text(roadmap.category.name),
                 materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
             ],

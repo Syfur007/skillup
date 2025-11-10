@@ -10,7 +10,7 @@ class RoadmapModuleCard extends StatelessWidget {
   final VoidCallback onTap;
 
   const RoadmapModuleCard({
-    Key? key,
+    super.key,
     required this.title,
     this.description,
     required this.stageCount,
@@ -18,7 +18,7 @@ class RoadmapModuleCard extends StatelessWidget {
     required this.difficulty,
     required this.estimatedHours,
     required this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

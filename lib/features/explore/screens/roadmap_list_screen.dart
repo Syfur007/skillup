@@ -4,14 +4,13 @@
 
 import 'package:flutter/material.dart';
 import 'package:skillup/core/navigation/navigation.dart';
-import 'package:skillup/core/navigation/route_names.dart';
-import '../models/roadmap.dart';
+import 'package:skillup/domain/entities/roadmap.dart';
 import 'package:skillup/features/explore/screens/create_roadmap_screen.dart';
 import '../services/firestore_roadmap_service.dart';
 import '../widgets/roadmap_card.dart';
 
 class RoadmapListScreen extends StatefulWidget {
-  const RoadmapListScreen({Key? key}) : super(key: key);
+  const RoadmapListScreen({super.key});
 
   @override
   State<RoadmapListScreen> createState() => _RoadmapListScreenState();

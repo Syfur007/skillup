@@ -14,7 +14,7 @@ import 'package:skillup/features/explore/screens/roadmap_detail_screen.dart';
 import 'package:skillup/features/explore/screens/create_roadmap_screen.dart';
 import 'package:skillup/features/home/screens/home_screen.dart';
 import 'package:skillup/features/profile/screens/profile_screen.dart';
-import 'package:skillup/features/explore/models/roadmap.dart';
+import 'package:skillup/domain/entities/roadmap.dart';
 
 /// Authentication feature routes
 class AuthRoutes {

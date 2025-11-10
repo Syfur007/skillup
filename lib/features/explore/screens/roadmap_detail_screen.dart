@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import '../models/roadmap.dart';
+import 'package:skillup/domain/entities/roadmap.dart';
 import '../widgets/roadmap_detail_header.dart';
 import '../widgets/roadmap_stage_expanded.dart';
 import '../../profile/services/firestore_user_service.dart';
+import '../models/sample_roadmap_data.dart';
 
 class RoadmapDetailScreen extends StatefulWidget {
   final Roadmap roadmap;
@@ -211,14 +212,14 @@ class _RoadmapDetailScreenState extends State<RoadmapDetailScreen>
                   _buildInfoRow(
                     context,
                     label: 'Category',
-                    value: widget.roadmap.category,
+                    value: widget.roadmap.category.name,
                     icon: Icons.category,
                   ),
                   const Divider(height: 16),
                   _buildInfoRow(
                     context,
                     label: 'Difficulty',
-                    value: widget.roadmap.difficulty.toUpperCase(),
+                    value: widget.roadmap.difficulty.name.toUpperCase(),
                     icon: Icons.trending_up,
                   ),
                   const Divider(height: 16),
@@ -317,34 +318,72 @@ class _RoadmapDetailScreenState extends State<RoadmapDetailScreen>
       );
     }
 
+    // Render simple module placeholders using moduleIds from domain model
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(vertical: 16),
       child: Column(
         children: [
-          // Note: In a real implementation, you'd fetch and display Module data
-          // For now, showing placeholder with stage information
-          ...List.generate(widget.roadmap.stages.length, (index) {
-            final stage = widget.roadmap.stages[index];
-            return RoadmapStageExpanded(
-              stageTitle: stage.title,
-              stageDescription: stage.description,
-              taskCount: stage.steps.length,
-              resourceCount: 0, // To be populated from actual Module data
-              estimatedMinutes: stage.steps.fold(
-                0,
-                (sum, step) => sum + step.estimatedTime.inMinutes,
-              ),
-              isOptional: false,
-              tasks: stage.steps
-                  .map((step) => {
-                        'title': step.name,
-                        'description': step.description,
-                        'type': 'practice',
-                        'points': 0,
-                      })
-                  .toList(),
+          ...List.generate(widget.roadmap.moduleIds.length, (index) {
+            final moduleId = widget.roadmap.moduleIds[index];
+            final module = SampleRoadmapData.getSampleModuleById(moduleId);
+            if (module == null) {
+              return Card(
+                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: ListTile(
+                  leading: CircleAvatar(
+                    child: Text('${index + 1}'),
+                  ),
+                  title: Text('Module ${index + 1}'),
+                  subtitle: Text(moduleId),
+                  trailing: const Icon(Icons.chevron_right),
+                  onTap: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Open module: $moduleId')),
+                    );
+                  },
+                ),
+              );
+            }
+
+            return Column(
+              children: [
+                Card(
+                  margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      child: Text('${index + 1}'),
+                    ),
+                    title: Text(module.title),
+                    subtitle: Text(module.description),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Open module: ${module.id}')),
+                      );
+                    },
+                  ),
+                ),
+
+                // Show module stages using RoadmapStageExpanded by mapping ModuleStage -> expected props
+                ...module.stages.map((s) {
+                  return RoadmapStageExpanded(
+                    stageTitle: s.title,
+                    stageDescription: s.description,
+                    taskCount: s.tasks.length,
+                    resourceCount: s.resources.length,
+                    estimatedMinutes: s.estimatedMinutes,
+                    isOptional: s.isOptional,
+                    tasks: s.tasks.map((t) => {
+                          'title': t.title,
+                          'description': t.description,
+                          'type': t.taskType,
+                          'points': t.points,
+                        }).toList(),
+                  );
+                }),
+              ],
             );
-          }).toList(),
+          }),
           const SizedBox(height: 24),
         ],
       ),
@@ -469,4 +508,3 @@ class _RoadmapDetailScreenState extends State<RoadmapDetailScreen>
     );
   }
 }
-
