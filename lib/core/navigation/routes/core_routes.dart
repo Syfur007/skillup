@@ -5,8 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:skillup/core/navigation/route_names.dart';
 
-import 'package:skillup/features/auth/screens/onboarding_screen.dart';
-import 'package:skillup/features/home/screens/home_screen.dart';
+import 'package:skillup/features/core/screens/splash_screen.dart';
+import 'package:skillup/features/core/screens/onboarding_screen.dart';
+import 'package:skillup/features/core/screens/home_screen.dart';
 
 /// Core feature routes
 class CoreRoutes {
@@ -14,7 +15,8 @@ class CoreRoutes {
     GoRoute(
       path: RoutePaths.splash,
       name: RouteNames.splash,
-      builder: (context, state) => const Scaffold(body: Center(child: CircularProgressIndicator())),
+      pageBuilder: (context, state) =>
+          MaterialPage(key: state.pageKey, child: const SplashScreen()),
     ),
     GoRoute(
       path: RoutePaths.onboarding,
