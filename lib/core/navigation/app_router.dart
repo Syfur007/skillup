@@ -2,14 +2,20 @@
 // Main router composition that imports route definitions from centralized location.
 // This file now just composes routes rather than defining them directly.
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'route_names.dart';
 import 'error_screen.dart';
-import 'routes/auth_routes.dart';
+import 'package:skillup/core/navigation/routes/auth_routes.dart';
+import 'package:skillup/core/navigation/routes/core_routes.dart';
+import 'package:skillup/core/navigation/routes/explore_routes.dart';
+import 'package:skillup/core/navigation/routes/profile_routes.dart';
 import 'package:skillup/features/auth/providers/auth_state_provider.dart';
+import 'package:skillup/data/repositories/auth_repository_impl.dart';
 
 /// Provider to determine if onboarding has been completed.
 /// It asynchronously checks SharedPreferences.
@@ -28,81 +34,84 @@ final routerProvider = Provider<GoRouter>((ref) {
   final authStateAsync = ref.watch(authStateChangesProvider);
   final onboardingCompleted = ref.watch(onboardingCompletedProvider);
 
+  // Create a refresh notifier that notifies GoRouter when auth state changes.
+  // Some Riverpod versions don't expose `.stream` on the provider object, so read the stream directly from the repository.
+  final authStream = AuthRepositoryImpl().authStateChanges;
+  final refreshListenable = GoRouterRefreshStream(authStream);
+
   return GoRouter(
-    initialLocation: '/splash',
+    initialLocation: RoutePaths.splash,
     debugLogDiagnostics: true,
+    refreshListenable: refreshListenable,
 
     // Error handling for unknown routes
     errorBuilder: (context, state) => ErrorScreen(error: state.error),
 
     // Global navigation guards (auth redirects, etc.)
     redirect: (context, state) {
-      final matchedLocation = state.matchedLocation;
+      final currentLocation = state.matchedLocation;
 
       // First, wait for onboarding check
       return onboardingCompleted.when(
         data: (isCompleted) {
-          // Handle auth state
           return authStateAsync.when(
             data: (user) {
               final isSignedIn = user != null;
 
-              // Priority 1: If onboarding is not completed, redirect to onboarding (unless already there)
-              if (!isCompleted && matchedLocation != RoutePaths.onboarding) {
+              // If onboarding not completed -> force onboarding
+              if (!isCompleted && currentLocation != RoutePaths.onboarding) {
                 return RoutePaths.onboarding;
               }
 
-              // Priority 2: If onboarding is completed but not signed in
+              // If onboarding completed but not signed in -> allow only auth screens
               if (isCompleted && !isSignedIn) {
-                // Allow access to login and register screens
-                const authPaths = [RoutePaths.login, RoutePaths.register];
-                final isOnAuthPath = authPaths.any((path) => matchedLocation.startsWith(path));
-
-                if (!isOnAuthPath) {
-                  // Redirect from splash, onboarding, or any protected route to login
-                  return RoutePaths.login;
-                }
-
-                // Already on auth screen, no redirect needed
+                const allowed = [RoutePaths.login, RoutePaths.register];
+                final onAllowed = allowed.any((p) => currentLocation.startsWith(p));
+                if (!onAllowed) return RoutePaths.login;
                 return null;
               }
 
-              // Priority 3: If onboarding is completed AND user is signed in
+              // If signed in and onboarding completed -> avoid public auth/onboarding/splash
               if (isCompleted && isSignedIn) {
-                // Redirect from splash, onboarding, or auth screens to home
-                const publicPaths = [RoutePaths.login, RoutePaths.register, RoutePaths.onboarding, '/splash'];
-                final isOnPublicPath = publicPaths.any((path) => matchedLocation.startsWith(path));
-
-                if (isOnPublicPath) {
-                  return RoutePaths.home;
-                }
-
-                // Already on a protected route, no redirect needed
+                const publicPaths = [RoutePaths.login, RoutePaths.register, RoutePaths.onboarding, RoutePaths.splash];
+                final onPublic = publicPaths.any((p) => currentLocation.startsWith(p));
+                if (onPublic) return RoutePaths.home;
                 return null;
               }
 
-              // No redirect needed
               return null;
             },
-            loading: () => '/splash',
-            error: (err, stack) => '/error',
+            loading: () => RoutePaths.splash,
+            error: (err, stack) => RoutePaths.error,
           );
         },
-        loading: () => '/splash', // Show splash while checking onboarding
-        error: (err, stack) => '/error', // Redirect to an error screen on failure
+        loading: () => RoutePaths.splash,
+        error: (err, stack) => RoutePaths.error,
       );
     },
 
     // Compose routes from all features using centralized route definitions
     routes: [
+      ...CoreRoutes.routes,
       ...AuthRoutes.routes,
-
-      // It's good practice to have explicit routes for splash and error screens
-      GoRoute(
-        path: '/splash',
-        builder: (context, state) => const Scaffold(body: Center(child: CircularProgressIndicator())),
-      ),
+      ...ExploreRoutes.routes,
+      ...ProfileRoutes.routes,
     ],
   );
 });
 
+/// Helper that converts a [Stream] into a [ChangeNotifier] so `GoRouter` can
+/// listen and refresh whenever the stream emits (used for auth state changes).
+class GoRouterRefreshStream extends ChangeNotifier {
+  late final StreamSubscription _sub;
+
+  GoRouterRefreshStream(Stream<dynamic> stream) {
+    _sub = stream.asBroadcastStream().listen((_) => notifyListeners());
+  }
+
+  @override
+  void dispose() {
+    _sub.cancel();
+    super.dispose();
+  }
+}

@@ -4,12 +4,17 @@
 
 /// Route names used with GoRouter's named navigation
 class RouteNames {
+
+  // Core routes
+  static const home = 'home';
+  static const error = 'error';
+  static const splash = 'splash';
+  static const onboarding = 'onboarding';
+
   // Auth routes
   static const login = 'login';
   static const register = 'register';
-  static const profileSetup = 'profile-setup';
   static const resetPassword = 'reset-password';
-  static const onboarding = 'onboarding';
 
   // Dashboard routes
   static const dashboard = 'dashboard';
@@ -25,18 +30,23 @@ class RouteNames {
 
   // Profile routes
   static const profile = 'profile';
+  static const profileSetup = 'profile-setup';
 
   // Home routes
-  static const home = 'home';
 }
 
 /// Route paths - kept separate from names for flexibility
 class RoutePaths {
+
+  // Core paths
+  static const home = '/home';
+  static const error = '/error';
+  static const splash = '/splash';
+  static const onboarding = '/onboarding';
+
   // Auth paths
   static const login = '/login';
   static const register = '/register';
-  static const onboarding = '/onboarding';
-  static const profileSetup = '/profile-setup';
   static const resetPassword = '/reset-password';
 
   // Dashboard paths
@@ -53,9 +63,8 @@ class RoutePaths {
 
   // Profile paths
   static const profile = '/profile';
+  static const profileSetup = '/profile-setup';
 
-  //home paths
-  static const home = '/home';
 
   // Helper methods for dynamic paths
   static String roadmapDetailPath(String id) => '/explore/roadmaps/$id';
