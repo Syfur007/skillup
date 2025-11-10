@@ -10,7 +10,7 @@ class RoadmapStageExpanded extends StatefulWidget {
   final List<Map<String, dynamic>> tasks;
 
   const RoadmapStageExpanded({
-    Key? key,
+    super.key,
     required this.stageTitle,
     this.stageDescription,
     required this.taskCount,
@@ -18,7 +18,7 @@ class RoadmapStageExpanded extends StatefulWidget {
     required this.estimatedMinutes,
     required this.isOptional,
     this.tasks = const [],
-  }) : super(key: key);
+  });
 
   @override
   State<RoadmapStageExpanded> createState() => _RoadmapStageExpandedState();
@@ -168,7 +168,7 @@ class _RoadmapStageExpandedState extends State<RoadmapStageExpanded> {
                               ],
                             ),
                           );
-                        }).toList(),
+                        }),
                       ],
                     ],
                   ),

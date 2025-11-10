@@ -1,17 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:skillup/domain/entities/roadmap.dart';
 
 class RoadmapDetailHeader extends StatelessWidget {
   final String title;
   final String description;
   final String? imageUrl;
-  final String difficulty;
+  final RoadmapDifficulty difficulty;
   final int estimatedHours;
   final double averageRating;
   final int enrolledCount;
   final List<String> tags;
 
   const RoadmapDetailHeader({
-    Key? key,
+    super.key,
     required this.title,
     required this.description,
     this.imageUrl,
@@ -20,25 +21,25 @@ class RoadmapDetailHeader extends StatelessWidget {
     required this.averageRating,
     required this.enrolledCount,
     this.tags = const [],
-  }) : super(key: key);
+  });
 
-  Color _getDifficultyColor(String difficulty) {
-    switch (difficulty.toLowerCase()) {
-      case 'beginner':
+  Color _getDifficultyColor(RoadmapDifficulty difficulty) {
+    switch (difficulty) {
+      case RoadmapDifficulty.beginner:
         return Colors.green;
-      case 'intermediate':
+      case RoadmapDifficulty.intermediate:
         return Colors.orange;
-      case 'advanced':
+      case RoadmapDifficulty.advanced:
         return Colors.red;
-      case 'expert':
+      case RoadmapDifficulty.expert:
         return Colors.deepPurple;
-      default:
-        return Colors.grey;
-    }
+      }
   }
 
   @override
   Widget build(BuildContext context) {
+    final diffLabel = difficulty.name.toUpperCase();
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -76,7 +77,7 @@ class RoadmapDetailHeader extends StatelessWidget {
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  difficulty.toUpperCase(),
+                  diffLabel,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 12,
@@ -163,4 +164,3 @@ class RoadmapDetailHeader extends StatelessWidget {
     );
   }
 }
-

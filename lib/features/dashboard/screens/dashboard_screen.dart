@@ -4,7 +4,7 @@
 import 'package:flutter/material.dart';
 import 'package:skillup/core/navigation/navigation_extensions.dart';
 import 'package:skillup/core/navigation/route_names.dart';
-import '../../explore/models/roadmap.dart';
+import 'package:skillup/domain/entities/roadmap.dart';
 import '../../explore/models/sample_roadmap_data.dart';
 import '../../explore/services/mock_roadmap_service.dart';
 
@@ -124,7 +124,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Text(
-                                r.difficulty.toUpperCase(),
+                                r.difficulty.name.toUpperCase(),
                                 style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.bold,
@@ -230,19 +230,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Color _getDifficultyColor(String difficulty) {
-    switch (difficulty.toLowerCase()) {
-      case 'beginner':
-        return Colors.green;
-      case 'intermediate':
-        return Colors.orange;
-      case 'advanced':
-        return Colors.red;
-      case 'expert':
-        return Colors.deepPurple;
-      default:
-        return Colors.grey;
-    }
+  Color _getDifficultyColor(RoadmapDifficulty difficulty) {
+    return {
+      RoadmapDifficulty.beginner: Colors.green,
+      RoadmapDifficulty.intermediate: Colors.orange,
+      RoadmapDifficulty.advanced: Colors.red,
+      RoadmapDifficulty.expert: Colors.deepPurple,
+    }[difficulty] ?? Colors.grey;
   }
 
   @override

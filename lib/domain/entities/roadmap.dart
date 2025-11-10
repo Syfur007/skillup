@@ -163,3 +163,64 @@ class Roadmap {
         tags: (json['tags'] as List<dynamic>?)?.map((e) => e as String).toList() ?? [],
       );
 }
+
+class RoadmapStage {
+  final String title;
+  final String description;
+  final List<RoadmapStep> steps;
+
+  RoadmapStage({
+    required this.title,
+    required this.description,
+    required this.steps,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'title': title,
+      'description': description,
+      'steps': steps.map((s) => s.toJson()).toList(),
+    };
+  }
+
+  factory RoadmapStage.fromJson(Map<String, dynamic> json) {
+    return RoadmapStage(
+      title: json['title'] as String? ?? '',
+      description: json['description'] as String? ?? '',
+      steps: (json['steps'] as List<dynamic>?)
+              ?.map((s) => RoadmapStep.fromJson(s as Map<String, dynamic>))
+              .toList() ??
+          [],
+    );
+  }
+}
+
+class RoadmapStep {
+  final String name;
+  final String description;
+  final Duration estimatedTime;
+
+  RoadmapStep({
+    required this.name,
+    required this.description,
+    required this.estimatedTime,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'name': name,
+      'description': description,
+      'estimatedTimeMinutes': estimatedTime.inMinutes,
+    };
+  }
+
+  factory RoadmapStep.fromJson(Map<String, dynamic> json) {
+    return RoadmapStep(
+      name: json['name'] as String? ?? '',
+      description: json['description'] as String? ?? '',
+      estimatedTime: Duration(
+        minutes: json['estimatedTimeMinutes'] as int? ?? 0,
+      ),
+    );
+  }
+}

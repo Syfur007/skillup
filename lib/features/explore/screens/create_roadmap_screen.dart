@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/firestore_roadmap_service.dart';
-import '../models/roadmap.dart';
+import 'package:skillup/domain/entities/roadmap.dart';
 
 class CreateRoadmapScreen extends StatefulWidget {
   const CreateRoadmapScreen({super.key});
