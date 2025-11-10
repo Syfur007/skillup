@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:skillup/features/explore/models/sample_roadmap_data.dart';
+import 'package:skillup/features/explore/providers/sample_roadmap_data.dart';
 import 'package:skillup/features/explore/widgets/roadmap_stage_expanded.dart';
 
 class ModuleScreen extends StatelessWidget {

@@ -3,7 +3,7 @@ import 'package:skillup/domain/entities/roadmap.dart';
 import '../widgets/roadmap_detail_header.dart';
 import '../widgets/roadmap_stage_expanded.dart';
 import '../../profile/services/firestore_user_service.dart';
-import '../models/sample_roadmap_data.dart';
+import '../providers/sample_roadmap_data.dart';
 import 'package:skillup/core/navigation/navigation.dart';
 
 class RoadmapDetailScreen extends StatefulWidget {

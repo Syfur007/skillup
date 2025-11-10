@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:skillup/core/navigation/navigation_extensions.dart';
 import 'package:skillup/core/navigation/route_names.dart';
 import 'package:skillup/domain/entities/roadmap.dart';
-import '../../explore/models/sample_roadmap_data.dart';
+import '../../explore/providers/sample_roadmap_data.dart';
 import '../../explore/services/mock_roadmap_service.dart';
 
 class DashboardScreen extends StatefulWidget {
