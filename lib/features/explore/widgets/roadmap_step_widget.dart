@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
-import '../models/roadmap.dart';
+import 'package:skillup/domain/entities/roadmap.dart';
 
 class RoadmapStepWidget extends StatelessWidget {
   final RoadmapStep step;
   final int stepNumber;
 
   const RoadmapStepWidget({
-    Key? key,
+    super.key,
     required this.step,
     required this.stepNumber,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

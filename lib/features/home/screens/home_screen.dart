@@ -21,33 +21,11 @@ class _HomeScreenState extends State<HomeScreen> {
     ProfileScreen(),
   ];
 
-  static const List<String> _titles = [
-    'Dashboard',
-    'Explore',
-    'Groups',
-    'Profile',
-  ];
-
   void _onTap(int index) => setState(() => _selectedIndex = index);
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(_titles[_selectedIndex]),
-        actions: [
-          if (_selectedIndex == 1)
-            IconButton(
-              icon: const Icon(Icons.search),
-              onPressed: () {
-                // hook: implement search in roadmap list screen
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Open roadmap search')),
-                );
-              },
-            ),
-        ],
-      ),
       body: IndexedStack(index: _selectedIndex, children: _pages),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
