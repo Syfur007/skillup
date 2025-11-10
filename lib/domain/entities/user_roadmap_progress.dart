@@ -1,4 +1,4 @@
-// filepath: /home/syfur/Android/Flutter/skillup/lib/domain/entities/user_roadmap_progress.dart
+// filepath: lib/domain/entities/user_roadmap_progress.dart
 
 // Entities that model a user's progress/enrollment in a roadmap.
 // Matches the structures described in skillup_models.md.
@@ -342,6 +342,144 @@ class UserRoadmapProgress {
     );
   }
 
+  /// Return a new [UserRoadmapProgress] with a single task updated.
+  /// If the module/stage/task entries do not exist they will be created
+  /// using sensible defaults (counts derived from existing maps).
+  UserRoadmapProgress updateTaskStatus({
+    required String moduleId,
+    required String stageId,
+    required String taskId,
+    required bool isCompleted,
+    int timeSpentMinutes = 0,
+    DateTime? completedAt,
+  }) {
+    // Clone moduleProgress map and nested structures to avoid mutating original
+    final newModuleProgress = <String, ModuleProgress>{};
+    moduleProgress.forEach((k, v) => newModuleProgress[k] = v);
+
+    final origModule = newModuleProgress[moduleId];
+
+    if (origModule == null) {
+      // Nothing to update if module is missing; create a minimal structure
+      final newTask = TaskProgress(taskId: taskId, isCompleted: isCompleted, completedAt: isCompleted ? (completedAt ?? DateTime.now()) : null, timeSpentMinutes: timeSpentMinutes);
+      final newStage = StageProgress(
+        stageId: stageId,
+        startedAt: DateTime.now(),
+        completedAt: isCompleted ? (completedAt ?? DateTime.now()) : null,
+        progressPercentage: isCompleted ? 100.0 : 0.0,
+        completedTasks: isCompleted ? 1 : 0,
+        totalTasks: 1,
+        taskProgress: {taskId: newTask},
+        status: isCompleted ? StageStatus.completed : StageStatus.notStarted,
+      );
+      final newModule = ModuleProgress(
+        moduleId: moduleId,
+        startedAt: DateTime.now(),
+        completedAt: isCompleted ? (completedAt ?? DateTime.now()) : null,
+        progressPercentage: isCompleted ? 100.0 : 0.0,
+        completedStages: isCompleted ? 1 : 0,
+        totalStages: 1,
+        completedTasks: isCompleted ? 1 : 0,
+        totalTasks: 1,
+        stageProgress: {stageId: newStage},
+        status: isCompleted ? ModuleStatus.completed : ModuleStatus.notStarted,
+      );
+      newModuleProgress[moduleId] = newModule;
+    } else {
+      // Clone existing module and its stages map
+      final clonedStages = <String, StageProgress>{};
+      origModule.stageProgress.forEach((k, v) => clonedStages[k] = v);
+
+      final origStage = clonedStages[stageId];
+      if (origStage == null) {
+        // Create new stage entry
+        final newTask = TaskProgress(taskId: taskId, isCompleted: isCompleted, completedAt: isCompleted ? (completedAt ?? DateTime.now()) : null, timeSpentMinutes: timeSpentMinutes);
+        final newStage = StageProgress(
+          stageId: stageId,
+          startedAt: DateTime.now(),
+          completedAt: isCompleted ? (completedAt ?? DateTime.now()) : null,
+          progressPercentage: isCompleted ? 100.0 : 0.0,
+          completedTasks: isCompleted ? 1 : 0,
+          totalTasks: 1,
+          taskProgress: {taskId: newTask},
+          status: isCompleted ? StageStatus.completed : StageStatus.notStarted,
+        );
+        clonedStages[stageId] = newStage;
+      } else {
+        // Clone taskProgress map
+        final clonedTasks = <String, TaskProgress>{};
+        origStage.taskProgress.forEach((k, v) => clonedTasks[k] = v);
+
+        final origTask = clonedTasks[taskId];
+        if (origTask == null) {
+          // Create a new task progress entry
+          clonedTasks[taskId] = TaskProgress(
+            taskId: taskId,
+            isCompleted: isCompleted,
+            completedAt: isCompleted ? (completedAt ?? DateTime.now()) : null,
+            timeSpentMinutes: timeSpentMinutes,
+            completedResourceIds: isCompleted ? ['res_$taskId'] : [],
+          );
+        } else {
+          // Update existing task
+          clonedTasks[taskId] = origTask.copyWith(
+            isCompleted: isCompleted,
+            completedAt: isCompleted ? (completedAt ?? DateTime.now()) : null,
+            timeSpentMinutes: isCompleted ? (origTask.timeSpentMinutes + timeSpentMinutes) : (origTask.timeSpentMinutes),
+          );
+        }
+
+        // Recompute stage aggregates
+        final completedTasksCount = clonedTasks.values.where((t) => t.isCompleted).length;
+        final totalTasksCount = clonedTasks.isNotEmpty ? clonedTasks.length : origStage.totalTasks;
+        final pct = totalTasksCount == 0 ? 0.0 : (completedTasksCount / totalTasksCount) * 100.0;
+        clonedStages[stageId] = origStage.copyWith(
+          taskProgress: clonedTasks,
+          completedTasks: completedTasksCount,
+          totalTasks: totalTasksCount,
+          progressPercentage: pct,
+          status: completedTasksCount == 0 ? StageStatus.notStarted : (completedTasksCount == totalTasksCount ? StageStatus.completed : StageStatus.inProgress),
+          completedAt: completedTasksCount == totalTasksCount ? (completedAt ?? DateTime.now()) : origStage.completedAt,
+        );
+      }
+
+      // Recompute module aggregates based on clonedStages
+      final completedStagesCount = clonedStages.values.where((s) => s.status == StageStatus.completed).length;
+      final totalStagesCount = clonedStages.isNotEmpty ? clonedStages.length : origModule.totalStages;
+      final completedTasksSum = clonedStages.values.fold<int>(0, (p, e) => p + e.completedTasks);
+      final totalTasksSum = clonedStages.values.fold<int>(0, (p, e) => p + e.totalTasks);
+      final modulePct = totalTasksSum == 0 ? 0.0 : (completedTasksSum / totalTasksSum) * 100.0;
+
+      newModuleProgress[moduleId] = origModule.copyWith(
+        stageProgress: clonedStages,
+        completedStages: completedStagesCount,
+        totalStages: totalStagesCount,
+        completedTasks: completedTasksSum,
+        totalTasks: totalTasksSum,
+        progressPercentage: modulePct,
+        status: completedStagesCount == 0 ? ModuleStatus.notStarted : (completedStagesCount == totalStagesCount ? ModuleStatus.completed : ModuleStatus.inProgress),
+      );
+    }
+
+    // Recompute overall roadmap aggregates
+    final newCompletedTasks = newModuleProgress.values.fold<int>(0, (p, m) => p + m.completedTasks);
+    final newTotalTasks = newModuleProgress.values.fold<int>(0, (p, m) => p + m.totalTasks);
+    final newTotalTime = newModuleProgress.values.fold<int>(0, (p, m) => p + m.stageProgress.values.fold<int>(0, (pp, sp) => pp + sp.taskProgress.values.fold<int>(0, (ppp, t) => ppp + t.timeSpentMinutes)));
+    final newPct = newTotalTasks == 0 ? 0.0 : (newCompletedTasks / newTotalTasks) * 100.0;
+
+    final newStatus = newPct >= 100.0 ? RoadmapStatus.completed : (newPct > 0.0 ? RoadmapStatus.inProgress : RoadmapStatus.notStarted);
+
+    return copyWith(
+      moduleProgress: newModuleProgress,
+      completedTasks: newCompletedTasks,
+      totalTasks: newTotalTasks,
+      progressPercentage: newPct,
+      status: newStatus,
+      totalTimeSpentMinutes: newTotalTime,
+      lastAccessedAt: DateTime.now(),
+    );
+  }
+
   Map<String, dynamic> toJson() => {
         'id': id,
         'userId': userId,
@@ -386,4 +524,3 @@ class UserRoadmapProgress {
         currentStageId: json['currentStageId'] as String?,
       );
 }
-
