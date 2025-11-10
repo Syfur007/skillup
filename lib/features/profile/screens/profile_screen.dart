@@ -3,6 +3,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:skillup/domain/entities/roadmap.dart';
+import 'package:skillup/core/utils/progress_calculator.dart';
 import '../../explore/services/firestore_roadmap_service.dart';
 import '../../../domain/entities/user.dart';
 import '../../../domain/entities/user_roadmap.dart';
@@ -104,38 +105,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
   int get _completedCount =>
       _userRoadmaps.where((ur) {
         final rm = _findRoadmap(ur.roadmapId);
-        final pct = _computeUserRoadmapProgress(ur, rm);
+        final pct = ProgressCalculator.getProgressFromUserRoadmap(
+          userRoadmap: ur,
+          roadmap: rm,
+        );
         return pct >= 1.0;
       }).length;
 
-  // Compute a user's roadmap progress between 0.0 and 1.0.
-  // Priority: if UserRoadmap.progress is provided (> 0), use it. Otherwise,
-  // fall back to completedSteps count divided by the roadmap.totalTasks.
-  double _computeUserRoadmapProgress(UserRoadmap ur, Roadmap? roadmap) {
-    // Normalize stored progress values.
-    // Some parts of the app may store progress as 0-1 (fraction) or 0-100 (percent).
-    final raw = ur.progress;
-    if (raw > 0.0) {
-      if (raw > 1.0) {
-        // Treat values in (1, 100+] as percentage; clamp to 100
-        final pct = raw.clamp(0.0, 100.0);
-        return (pct / 100.0).clamp(0.0, 1.0);
-      }
-      return raw.clamp(0.0, 1.0);
-    }
-
-    // Fallback: compute from completedSteps. Prefer roadmap.totalTasks if present.
-    if (roadmap == null) return 0.0;
-
-    int totalTasks = roadmap.totalTasks;
-    // If totalTasks is not set in the roadmap, we can't calculate progress accurately
-    // In the future, you could fetch modules from Firestore here if needed
-
-    if (totalTasks <= 0) return 0.0;
-
-    final completedCount = ur.completedSteps.values.where((v) => v == true).length;
-    return (completedCount / totalTasks).clamp(0.0, 1.0);
-  }
 
   // Helper: find roadmap by id in _allRoadmaps
   Roadmap? _findRoadmap(String id) {
@@ -410,7 +386,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   final ur = _userRoadmaps.firstWhere(
                     (u) => u.roadmapId == r.id,
                   );
-                  final progress = _computeUserRoadmapProgress(ur, r);
+                  final progress = ProgressCalculator.getProgressFromUserRoadmap(
+                    userRoadmap: ur,
+                    roadmap: r,
+                  );
                   return Card(
                     child: ListTile(
                       leading: CircleAvatar(

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:skillup/domain/entities/roadmap.dart';
 import 'package:skillup/domain/entities/module.dart';
+import 'package:skillup/core/utils/progress_calculator.dart';
 import '../widgets/roadmap_detail_header.dart';
 import '../widgets/roadmap_stage_expanded.dart';
 import '../../profile/services/firestore_user_service.dart';
@@ -93,15 +94,16 @@ class _RoadmapDetailScreenState extends State<RoadmapDetailScreen>
   }
 
   double _normalizeProgress(UserRoadmap ur) {
+    // Try using stored progress first
     final raw = ur.progress;
     if (raw > 0.0) {
-      if (raw > 1.0) return (raw.clamp(0.0, 100.0) / 100.0).clamp(0.0, 1.0);
-      return raw.clamp(0.0, 1.0);
+      return ProgressCalculator.normalizeProgress(raw);
     }
-    // Fallback: compute from completedSteps and roadmap.totalTasks if available
+
+    // Fallback: compute from completedSteps
     var total = widget.roadmap.totalTasks;
     if (total <= 0 && _modules.isNotEmpty) {
-      // Calculate from loaded modules
+      // Calculate total from loaded modules
       try {
         total = _modules.values.fold<int>(0, (sum, m) {
           return sum + m.stages.fold<int>(0, (sSum, st) => sSum + st.tasks.length);

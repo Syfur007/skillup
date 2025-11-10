@@ -6,11 +6,13 @@ import 'package:skillup/domain/entities/module.dart';
 import 'package:skillup/domain/entities/user_roadmap.dart';
 import 'package:skillup/domain/entities/user_roadmap_progress.dart';
 import 'package:skillup/features/explore/services/firestore_module_service.dart';
+import 'package:skillup/core/utils/progress_calculator.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'module_detail_screen.dart';
 import '../services/firestore_user_service.dart';
 
 /// Screen that shows detailed view of a roadmap the user has enrolled in.
-/// Fetches module data from Firestore and displays progress information.
+/// Fetches module data from Firestore and displays real progress information.
 class EnrolledRoadmapScreen extends StatefulWidget {
   final Roadmap roadmap;
   final UserRoadmap? userRoadmap;
@@ -23,6 +25,7 @@ class EnrolledRoadmapScreen extends StatefulWidget {
 
 class _EnrolledRoadmapScreenState extends State<EnrolledRoadmapScreen> {
   final _moduleService = FirestoreModuleService();
+  final _userService = FirestoreUserService();
   late UserRoadmapProgress _progress;
   List<Module> _modules = [];
   bool _loadingModules = true;
@@ -47,94 +50,26 @@ class _EnrolledRoadmapScreenState extends State<EnrolledRoadmapScreen> {
       setState(() {
         _modules = modules;
         _loadingModules = false;
-        _progress = _buildMockProgress();
+        _progress = _buildRealProgress();
       });
     } catch (e) {
       if (!mounted) return;
       setState(() {
         _loadingModules = false;
-        _progress = _buildMockProgress();
+        _progress = _buildRealProgress();
       });
     }
   }
 
-  // Mock: build a fake UserRoadmapProgress for demo purposes. In real app
-  // this would be loaded from a repository/service.
-  UserRoadmapProgress _buildMockProgress() {
-    final roadmap = widget.roadmap;
-    // Use loaded modules to assemble progress
-    final modules = _modules;
+  // Build real UserRoadmapProgress from loaded modules and user data
+  UserRoadmapProgress _buildRealProgress() {
+    final userId = FirebaseAuth.instance.currentUser?.uid ?? 'unknown';
 
-    final moduleProgress = <String, ModuleProgress>{};
-    for (var m in modules) {
-      final stageProgress = <String, StageProgress>{};
-      for (var s in m.stages) {
-        final taskMap = <String, TaskProgress>{};
-        for (var t in s.tasks) {
-          // randomly mark some tasks complete to simulate progress
-          final completed = t.id.hashCode % 3 == 0;
-          taskMap[t.id] = TaskProgress(
-            taskId: t.id,
-            isCompleted: completed,
-            completedAt: completed ? DateTime.now().subtract(Duration(days: t.order)) : null,
-            timeSpentMinutes: completed ? (t.estimatedMinutes ~/ 2) : 0,
-            completedResourceIds: completed ? ['res_${t.id}'] : [],
-          );
-        }
-
-        final completedTasks = taskMap.values.where((tp) => tp.isCompleted).length;
-        final totalTasks = s.tasks.length;
-        final pct = totalTasks == 0 ? 0.0 : (completedTasks / totalTasks) * 100.0;
-
-        stageProgress[s.id] = StageProgress(
-          stageId: s.id,
-          startedAt: DateTime.now().subtract(const Duration(days: 10)),
-          completedAt: completedTasks == totalTasks ? DateTime.now().subtract(const Duration(days: 1)) : null,
-          progressPercentage: pct,
-          completedTasks: completedTasks,
-          totalTasks: totalTasks,
-          taskProgress: taskMap,
-          status: completedTasks == 0 ? StageStatus.notStarted : (completedTasks == totalTasks ? StageStatus.completed : StageStatus.inProgress),
-        );
-      }
-
-      final completedStages = stageProgress.values.where((sp) => sp.status == StageStatus.completed).length;
-      final totalStages = m.stages.length;
-      final completedTasksSum = stageProgress.values.fold<int>(0, (p, e) => p + e.completedTasks);
-      final totalTasksSum = stageProgress.values.fold<int>(0, (p, e) => p + e.totalTasks);
-      final modulePct = totalTasksSum == 0 ? 0.0 : (completedTasksSum / totalTasksSum) * 100.0;
-
-      moduleProgress[m.id] = ModuleProgress(
-        moduleId: m.id,
-        startedAt: DateTime.now().subtract(const Duration(days: 12)),
-        completedAt: completedStages == totalStages ? DateTime.now().subtract(const Duration(days: 1)) : null,
-        progressPercentage: modulePct,
-        completedStages: completedStages,
-        totalStages: totalStages,
-        completedTasks: completedTasksSum,
-        totalTasks: totalTasksSum,
-        stageProgress: stageProgress,
-        status: completedStages == 0 ? ModuleStatus.notStarted : (completedStages == totalStages ? ModuleStatus.completed : ModuleStatus.inProgress),
-      );
-    }
-
-    final completedTasksTotal = moduleProgress.values.fold<int>(0, (p, e) => p + e.completedTasks);
-    final totalTasksTotal = moduleProgress.values.fold<int>(0, (p, e) => p + e.totalTasks);
-    final overallPct = totalTasksTotal == 0 ? 0.0 : (completedTasksTotal / totalTasksTotal) * 100.0;
-
-    return UserRoadmapProgress(
-      id: 'mock_${roadmap.id}',
-      userId: 'mock_user',
-      roadmapId: roadmap.id,
-      startedAt: DateTime.now().subtract(const Duration(days: 15)),
-      lastAccessedAt: DateTime.now(),
-      progressPercentage: overallPct,
-      completedTasks: completedTasksTotal,
-      totalTasks: totalTasksTotal,
-      moduleProgress: moduleProgress,
-      status: overallPct >= 100.0 ? RoadmapStatus.completed : RoadmapStatus.inProgress,
-      totalTimeSpentMinutes: moduleProgress.values.fold<int>(0, (p, m) => p + m.stageProgress.values.fold<int>(0, (pp, sp) => pp + sp.taskProgress.values.fold<int>(0, (ppp, tp) => ppp + tp.timeSpentMinutes))),
-      currentModuleId: roadmap.moduleIds.isNotEmpty ? roadmap.moduleIds.first : null,
+    return ProgressCalculator.buildProgressFromModules(
+      roadmapId: widget.roadmap.id,
+      userId: userId,
+      modules: _modules,
+      userRoadmap: widget.userRoadmap,
     );
   }
 
@@ -212,20 +147,23 @@ class _EnrolledRoadmapScreenState extends State<EnrolledRoadmapScreen> {
                     moduleId: m.moduleId,
                     moduleProgress: m,
                     updateTaskCallback: (String moduleId, String stageId, String taskId, bool isCompleted) async {
-                      // Use _progress.updateTaskStatus to compute new progress and return it
-                      final newProgress = _progress.updateTaskStatus(
+                      // Use ProgressCalculator to compute new progress
+                      final newProgress = ProgressCalculator.updateTaskCompletion(
+                        currentProgress: _progress,
                         moduleId: moduleId,
                         stageId: stageId,
                         taskId: taskId,
                         isCompleted: isCompleted,
-                        timeSpentMinutes: isCompleted ? 5 : 0,
                       );
-                      // Persist the updated progress so other screens see the change.
+
+                      // Persist the updated progress to Firestore
                       try {
-                        await FirestoreUserService().saveUserRoadmapProgress(newProgress);
-                      } catch (_) {
-                        // ignore persistence errors in mock/demo mode
+                        await _userService.saveUserRoadmapProgress(newProgress);
+                      } catch (e) {
+                        // Log error but continue - UI will still update locally
+                        debugPrint('Failed to save progress: $e');
                       }
+
                       if (!mounted) return newProgress;
                       setState(() {
                         _progress = newProgress;
@@ -237,13 +175,13 @@ class _EnrolledRoadmapScreenState extends State<EnrolledRoadmapScreen> {
               );
 
               if (updated != null) {
-                if (!mounted) return; // safety
+                if (!mounted) return;
                 setState(() {
                   _progress = updated;
                 });
-                // try to persist final updated state
+                // Persist final state
                 try {
-                  await FirestoreUserService().saveUserRoadmapProgress(updated);
+                  await _userService.saveUserRoadmapProgress(updated);
                 } catch (_) {}
               }
             },

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:skillup/core/navigation/navigation_extensions.dart';
 import 'package:skillup/core/navigation/route_names.dart';
 import 'package:skillup/domain/entities/roadmap.dart';
+import 'package:skillup/core/utils/progress_calculator.dart';
 import '../../explore/services/firestore_roadmap_service.dart';
 import '../../profile/services/firestore_user_service.dart';
 import '../../../domain/entities/user_roadmap.dart';
@@ -81,7 +82,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _roadmapTile(Roadmap r) {
     // Find user's progress for this roadmap
     final userRoadmap = _userRoadmaps.where((ur) => ur.roadmapId == r.id).firstOrNull;
-    final progress = userRoadmap != null ? _normalizeProgress(userRoadmap.progress) : 0.0;
+    final progress = userRoadmap != null
+        ? ProgressCalculator.normalizeProgress(userRoadmap.progress)
+        : 0.0;
 
     return Card(
       elevation: 2,
@@ -241,17 +244,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  double _normalizeProgress(double raw) {
-    if (raw > 0.0) {
-      if (raw > 1.0) {
-        // Treat values > 1.0 as percentage (0-100)
-        return (raw.clamp(0.0, 100.0) / 100.0).clamp(0.0, 1.0);
-      }
-      // Already a fraction (0.0-1.0)
-      return raw.clamp(0.0, 1.0);
-    }
-    return 0.0;
-  }
 
   Color _getDifficultyColor(RoadmapDifficulty difficulty) {
     return {
@@ -349,7 +341,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     itemCount: featured.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 8),
+                    separatorBuilder: (_, _) => const SizedBox(height: 8),
                     itemBuilder: (context, index) => _roadmapTile(featured[index]),
                   );
                 },
@@ -416,7 +408,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     itemCount: show.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 8),
+                    separatorBuilder: (_, _) => const SizedBox(height: 8),
                     itemBuilder: (context, index) => _roadmapTile(show[index]),
                   );
                 },
