@@ -2,22 +2,24 @@
 // Dashboard screen that aggregates key metrics and quick actions for users.
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:skillup/core/navigation/navigation_extensions.dart';
 import 'package:skillup/core/navigation/route_names.dart';
 import 'package:skillup/domain/entities/roadmap.dart';
 import 'package:skillup/core/utils/progress_calculator.dart';
+import 'package:skillup/core/theme/theme_provider.dart';
 import '../../explore/services/firestore_roadmap_service.dart';
 import '../../profile/services/firestore_user_service.dart';
 import '../../../domain/entities/user_roadmap.dart';
 
-class DashboardScreen extends StatefulWidget {
+class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
 
   @override
-  State<DashboardScreen> createState() => _DashboardScreenState();
+  ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen> {
+class _DashboardScreenState extends ConsumerState<DashboardScreen> {
   final _roadmapService = FirestoreRoadmapService();
   final _userService = FirestoreUserService();
   late Future<List<Roadmap>> _roadmapsFuture;
@@ -49,27 +51,40 @@ class _DashboardScreenState extends State<DashboardScreen> {
     Color color,
     IconData icon,
   ) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Expanded(
       child: Card(
-        elevation: 2,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              CircleAvatar(
-                backgroundColor: color.withValues(alpha: 0.15),
-                child: Icon(icon, color: color),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(icon, color: color, size: 24),
+                  ),
+                ],
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title, style: Theme.of(context).textTheme.bodySmall),
-                    const SizedBox(height: 6),
-                    Text(value, style: Theme.of(context).textTheme.titleMedium),
-                  ],
+              const SizedBox(height: 16),
+              Text(
+                title,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                value,
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: colorScheme.onSurface,
                 ),
               ),
             ],
@@ -80,6 +95,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _roadmapTile(Roadmap r) {
+    final colorScheme = Theme.of(context).colorScheme;
     // Find user's progress for this roadmap
     final userRoadmap = _userRoadmaps.where((ur) => ur.roadmapId == r.id).firstOrNull;
     final progress = userRoadmap != null
@@ -87,8 +103,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         : 0.0;
 
     return Card(
-      elevation: 2,
-      margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 4),
+      margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 6),
       child: InkWell(
         onTap: () {
           context.pushNamed(
@@ -97,8 +112,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
             extra: r,
           );
         },
+        borderRadius: BorderRadius.circular(16),
         child: Padding(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -107,11 +123,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Icon
-                  CircleAvatar(
-                    backgroundColor: Theme.of(context).primaryColor.withValues(alpha: 0.15),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: colorScheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     child: Icon(
                       Icons.school,
-                      color: Theme.of(context).primaryColor,
+                      color: colorScheme.primary,
+                      size: 24,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -173,7 +194,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Colors.grey[600],
+                      color: colorScheme.onSurfaceVariant,
                     ),
               ),
               const SizedBox(height: 10),
@@ -184,9 +205,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 child: LinearProgressIndicator(
                   value: progress,
                   minHeight: 6,
-                  backgroundColor: Colors.grey[300],
+                  backgroundColor: colorScheme.surfaceContainerHighest,
                   valueColor: AlwaysStoppedAnimation<Color>(
-                    Theme.of(context).primaryColor,
+                    colorScheme.primary,
                   ),
                 ),
               ),
@@ -211,14 +232,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   spacing: 6,
                   runSpacing: 4,
                   children: r.tags.take(3).map((tag) {
-                    return Chip(
-                      label: Text(
-                        tag,
-                        style: const TextStyle(fontSize: 11),
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: colorScheme.secondaryContainer,
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                      backgroundColor: Colors.grey[200],
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
-                      visualDensity: VisualDensity.compact,
+                      child: Text(
+                        tag,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          color: colorScheme.onSecondaryContainer,
+                        ),
+                      ),
                     );
                   }).toList(),
                 ),
@@ -231,10 +258,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildMetricChip(String label, IconData icon) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 14, color: Theme.of(context).primaryColor),
+        Icon(icon, size: 14, color: colorScheme.primary),
         const SizedBox(width: 4),
         Text(
           label,
@@ -256,8 +285,39 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final themeNotifier = ref.read(themeModeProvider.notifier);
+    final isDark = themeNotifier.isDarkMode(context);
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Dashboard')),
+      appBar: AppBar(
+        title: const Text('Dashboard'),
+        actions: [
+          // Theme toggle button
+          Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            child: IconButton(
+              icon: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                transitionBuilder: (child, animation) {
+                  return RotationTransition(
+                    turns: animation,
+                    child: FadeTransition(opacity: animation, child: child),
+                  );
+                },
+                child: Icon(
+                  isDark ? Icons.light_mode : Icons.dark_mode,
+                  key: ValueKey(isDark),
+                ),
+              ),
+              onPressed: () {
+                themeNotifier.toggleTheme();
+              },
+              tooltip: isDark ? 'Switch to Light Mode' : 'Switch to Dark Mode',
+            ),
+          ),
+        ],
+      ),
       body: RefreshIndicator(
         onRefresh: _refresh,
         child: SingleChildScrollView(
@@ -271,14 +331,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   _buildSummaryCard(
                     'Active',
                     '3',
-                    Colors.blue,
+                    colorScheme.primary,
                     Icons.play_circle_fill,
                   ),
                   const SizedBox(width: 12),
                   _buildSummaryCard(
                     'Completed',
                     '7',
-                    Colors.green,
+                    colorScheme.tertiary,
                     Icons.emoji_events,
                   ),
                 ],
